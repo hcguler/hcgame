@@ -1,0 +1,99 @@
+<div class="component-container">
+  <div class="component-header">
+    <h1>{{ title }}</h1>
+  </div>
+
+  <div class="component-content">
+    <div class="how-to-play-container">
+      <section class="game-intro">
+        <h2>Welcome to the Number Challenge Game!</h2>
+        <p>Test your mathematical skills in this exciting game where you aim to reach a target number using basic operations and strategic thinking.</p>
+        <div class="game-image">
+          <img src="assets/images/number-challenge.png" alt="Number Challenge Game" onerror="this.src='https://via.placeholder.com/600x300?text=Number+Challenge+Game'">
+        </div>
+      </section>
+
+      <section class="game-basics">
+        <h2>Game Basics</h2>
+        <div class="instruction-card">
+          <div class="instruction-icon">1</div>
+          <div class="instruction-text">
+            <h3>Understand the Goal</h3>
+            <p>You'll be given 6 starting numbers and a 3-digit target number. Your goal is to reach the target number using the starting numbers and basic mathematical operations.</p>
+          </div>
+        </div>
+
+        <div class="instruction-card">
+          <div class="instruction-icon">2</div>
+          <div class="instruction-text">
+            <h3>Use Operations</h3>
+            <p>Combine the starting numbers using addition, subtraction, multiplication, and division to reach the target number. You can only use each starting number once.</p>
+          </div>
+        </div>
+
+        <div class="instruction-card">
+          <div class="instruction-icon">3</div>
+          <div class="instruction-text">
+            <h3>Optimize Your Solution</h3>
+            <p>Try to reach the target number in the shortest time possible and with the minimum number of operations. The more efficient your solution, the higher your score!</p>
+          </div>
+        </div>
+
+        <div class="instruction-card">
+          <div class="instruction-icon">4</div>
+          <div class="instruction-text">
+            <h3>Submit Your Answer</h3>
+            <p>Once you've found a way to reach the target number, submit your solution to see how well you did and earn points for the leaderboard.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="game-modes">
+        <h2>Game Modes</h2>
+        <div class="mode-card">
+          <h3>Practice</h3>
+          <p>Hone your skills with practice problems of varying difficulty levels.</p>
+        </div>
+
+        <div class="mode-card">
+          <h3>Challenge</h3>
+          <p>Test yourself with a series of fixed questions that progressively increase in difficulty. This mode is designed to help you adapt to the game's challenges and improve your problem-solving skills step by step.</p>
+        </div>
+
+        <div class="mode-card">
+          <h3>Online</h3>
+          <p>Compete against other players in real-time challenges. As you solve problems, you'll collect points that are displayed on daily and monthly leaderboards, allowing you to track your progress and compare your performance with other players.</p>
+        </div>
+      </section>
+
+      <section class="leaderboard-info">
+        <h2>Compete on the Leaderboard</h2>
+        <p>Track your progress and compare your performance with other players on our leaderboards:</p>
+        <div class="leaderboard-types">
+          <div class="leaderboard-type">
+            <h3>Daily</h3>
+            <p>Top performers in the last 24 hours</p>
+          </div>
+          <div class="leaderboard-type">
+            <h3>Monthly</h3>
+            <p>Best players of the current month</p>
+          </div>
+          <div class="leaderboard-type">
+            <h3>All-Time</h3>
+            <p>Legendary players since the beginning</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="ready-to-play">
+        <h2>Ready to Play?</h2>
+        <p>Start your number challenge journey now and test your mathematical skills to reach the target numbers in the most efficient way!</p>
+        <a routerLink="/challenge" class="start-button">Go to Challenges</a>
+      </section>
+    </div>
+  </div>
+
+  <div class="component-footer">
+    <a routerLink="/" class="back-button">Back to Home</a>
+  </div>
+</div>

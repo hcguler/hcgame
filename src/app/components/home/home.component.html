@@ -1,0 +1,19 @@
+<div class="game-container">
+  <div class="game-header">
+    <h1>{{ title }}</h1>
+  </div>
+
+  <div class="game-menu">
+    <div class="menu-items">
+      <a *ngFor="let item of menuItems"
+         [routerLink]="item.route"
+         class="menu-item">
+        {{ item.name }}
+      </a>
+    </div>
+  </div>
+
+  <div class="game-footer">
+    <p>© 2023 HCGame. All rights reserved.</p>
+  </div>
+</div>

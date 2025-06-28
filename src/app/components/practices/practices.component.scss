@@ -1,0 +1,122 @@
+$bg-dark:#2c3e50;$bg-medium:#34495e;$text-light:white;$accent-blue:#3498db;$accent-blue-dark:#2980b9;
+$accent-green:#2ecc71;$accent-orange:#e67e22;$accent-red:#e74c3c;$accent-red-dark:#c0392b;
+$disabled-gray:#7f8c8d;$shadow-light:rgba(0,0,0,.1);$shadow-medium:rgba(0,0,0,.2);
+
+%flex-center{display:flex;justify-content:center;align-items:center;}
+%container-width{width:100%;max-width:600px;}
+%box-shadow{box-shadow:0 4px 6px $shadow-light;}
+%disabled{background-color:$disabled-gray;cursor:not-allowed;opacity:.7;}
+%hover-effect{transform:translateY(-2px);box-shadow:0 6px 8px $shadow-light;}
+
+.component-container{display:flex;flex-direction:column;min-height:100vh;height:100vh;
+background-color:$bg-dark;color:$text-light;font-family:'Arial',sans-serif;position:relative;overflow:hidden;}
+
+.component-header{text-align:center;padding:1.5rem 1rem;background-color:$bg-medium;@extend %box-shadow;
+position:sticky;top:0;z-index:10;
+h1{font-size:2.5rem;margin:0 0 1rem;text-shadow:2px 2px 4px $shadow-medium;
+@media(max-width:768px){font-size:2rem;}}}
+
+.game-info{@extend %flex-center;gap:2rem;margin:.5rem 0 1rem;
+.target-number,.timer{display:flex;align-items:center;background-color:$shadow-medium;
+padding:.5rem 1rem;border-radius:8px;box-shadow:0 2px 4px $shadow-medium;}
+.info-label{font-size:1.2rem;margin-right:.5rem;}
+.info-value{font-size:1.5rem;font-weight:bold;
+&.warning{color:$accent-red;animation:pulse 1s infinite;}}}
+
+.header-controls{@extend %flex-center;gap:1.5rem;margin-bottom:.5rem;}
+
+.component-content{flex:1;display:flex;flex-direction:column;align-items:center;
+padding:1rem;gap:1rem;overflow-y:auto;max-height:calc(100vh - 200px);-webkit-overflow-scrolling:touch;}
+
+.numbers-container{@extend %container-width;
+h2{text-align:center;margin-bottom:1rem;color:#ecf0f1;}}
+
+.numbers-grid{display:flex;flex-wrap:wrap;@extend %flex-center;gap:1rem;margin-bottom:1rem;}
+
+.initial-numbers{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin-bottom:1.5rem;
+@media(min-width:768px){grid-template-columns:repeat(6,1fr);}}
+
+.result-numbers{border-top:1px dashed rgba(255,255,255,.3);padding-top:1rem;}
+
+.number-button{width:70px;height:70px;font-size:1.8rem;font-weight:bold;background-color:$accent-blue;
+color:$text-light;border:none;border-radius:8px;cursor:pointer;transition:all .2s ease;@extend %box-shadow;
+&:hover:not(:disabled){background-color:$accent-blue-dark;@extend %hover-effect;}
+&:disabled{@extend %disabled;}}
+
+.operation-container{@extend %container-width;display:flex;flex-direction:column;
+align-items:center;gap:1rem;margin:1rem 0;}
+
+.selected-numbers{@extend %flex-center;gap:1rem;height:60px;}
+
+.selected-number{width:80px;height:60px;@extend %flex-center;background-color:$accent-green;
+color:$text-light;font-size:1.8rem;font-weight:bold;border-radius:8px;@extend %box-shadow;}
+
+.selected-operator{width:40px;height:40px;@extend %flex-center;background-color:$accent-orange;
+color:$text-light;font-size:1.5rem;font-weight:bold;border-radius:50%;@extend %box-shadow;}
+
+.operators{@extend %flex-center;gap:1rem;margin-top:.5rem;}
+
+.operator-button{width:50px;height:50px;font-size:1.5rem;font-weight:bold;background-color:$accent-orange;
+color:$text-light;border:none;border-radius:50%;cursor:pointer;transition:all .2s ease;@extend %box-shadow;
+&:hover:not(:disabled){background-color:#d35400;@extend %hover-effect;}
+&:disabled{@extend %disabled;}}
+
+.operations-history{@extend %container-width;
+h2{text-align:center;margin-bottom:1rem;color:#ecf0f1;}}
+
+.operations-list{display:flex;flex-direction:column;gap:.5rem;background-color:$shadow-medium;
+border-radius:8px;padding:1rem;@extend %box-shadow;}
+
+.operation-item{background-color:$bg-medium;padding:.8rem;border-radius:6px;
+text-align:center;font-size:1.2rem;box-shadow:0 2px 4px $shadow-light;}
+
+.empty-operation{height:3rem;background-color:rgba(255,255,255,.1);border-radius:6px;margin-bottom:.5rem;}
+
+.control-buttons{@extend %flex-center;gap:1.5rem;margin-top:1rem;}
+
+%button-base{padding:.8rem 1.5rem;font-size:1.1rem;font-weight:bold;border:none;border-radius:8px;
+cursor:pointer;transition:all .2s ease;@extend %box-shadow;color:$text-light;
+&:disabled{@extend %disabled;}}
+
+.control-button{@extend %button-base;
+&.undo{background-color:#9b59b6;&:hover:not(:disabled){background-color:#8e44ad;}}
+&.clear{background-color:#f39c12;&:hover:not(:disabled){background-color:#d35400;}}
+&.reset{background-color:$accent-red;&:hover{background-color:$accent-red-dark;}}}
+
+.component-footer{@extend %flex-center;gap:1.5rem;padding:1.5rem;background-color:$bg-medium;
+box-shadow:0 -4px 6px $shadow-light;}
+
+.back-button{@extend %button-base;display:inline-block;background-color:$accent-red;text-decoration:none;
+&:hover{background-color:$accent-red-dark;@extend %hover-effect;}}
+
+.dialog-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background-color:rgba(0,0,0,.7);
+@extend %flex-center;z-index:1000;}
+
+%dialog-base{background-color:$bg-medium;padding:2rem;border-radius:12px;text-align:center;
+box-shadow:0 8px 16px rgba(0,0,0,.3);max-width:90%;width:400px;
+h2{margin-top:0;font-size:1.8rem;}
+p{margin:1rem 0;font-size:1.2rem;}}
+
+.success-dialog{@extend %dialog-base;border:3px solid $accent-green;h2{color:$accent-green;}}
+.game-over-dialog{@extend %dialog-base;border:3px solid $accent-red;h2{color:$accent-red;}}
+
+.new-game-button{@extend %button-base;background-color:$accent-red;margin-top:1rem;
+&:hover{background-color:$accent-red-dark;@extend %hover-effect;}}
+
+@keyframes pulse{0%{opacity:1;}50%{opacity:.5;}100%{opacity:1;}}
+
+@media(max-width:768px){
+.component-header{padding:1rem .5rem;}
+.game-info{flex-direction:column;gap:.5rem;align-items:center;}
+.header-controls{margin-top:.5rem;}
+.component-content{padding:.5rem;gap:.5rem;max-height:none;flex:1;}
+.numbers-container h2,.operations-history h2{font-size:1.2rem;margin-bottom:.5rem;}
+.number-button{width:55px;height:55px;font-size:1.4rem;}
+.selected-number{width:65px;height:45px;font-size:1.4rem;}
+.operator-button{width:40px;height:40px;font-size:1.2rem;}
+%mobile-button{padding:.6rem 1rem;font-size:.9rem;}
+.control-button,.back-button,.new-game-button{@extend %mobile-button;}
+.operations-list{padding:.5rem;}
+.operation-item{padding:.5rem;font-size:1rem;}
+.empty-operation{height:2.5rem;}
+.component-footer{padding:1rem;flex-direction:column;gap:1rem;}}

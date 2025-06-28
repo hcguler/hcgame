@@ -1,0 +1,29 @@
+<div class="component-container">
+  <div class="component-header">
+    <h1>{{ title }}</h1>
+  </div>
+
+  <div class="component-content">
+    <div class="challenge-grid">
+      <div class="challenge-row" *ngFor="let row of rows">
+        <div class="challenge-item" *ngFor="let challenge of getChallengesForRow(row)">
+          <button class="challenge-button" [attr.data-difficulty]="challenge.difficulty">
+            {{ challenge.id }}
+          </button>
+          <div class="star-rating">
+            <div class="stars" *ngIf="challenge.completed">
+              <span class="star filled" *ngFor="let star of [1, 2, 3]">★</span>
+            </div>
+            <div class="stars" *ngIf="!challenge.completed">
+              <span class="star empty" *ngFor="let star of [1, 2, 3]">☆</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="component-footer">
+    <a routerLink="/" class="back-button">Back to Home</a>
+  </div>
+</div>

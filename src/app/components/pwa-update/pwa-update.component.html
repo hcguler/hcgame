@@ -1,0 +1,18 @@
+<div class="pwa-update-container">
+  <!-- Offline notification -->
+  <div *ngIf="(isOnline$ | async) === false" class="offline-notification">
+    <div class="notification-content">
+      <span class="notification-icon">⚠️</span>
+      <span class="notification-message">You are currently offline. Some features may not be available.</span>
+    </div>
+  </div>
+
+  <!-- Update notification -->
+  <div *ngIf="updateAvailable$ | async" class="update-notification">
+    <div class="notification-content">
+      <span class="notification-icon">🔄</span>
+      <span class="notification-message">A new version is available!</span>
+      <button class="update-button" (click)="updateApp()">Update Now</button>
+    </div>
+  </div>
+</div>

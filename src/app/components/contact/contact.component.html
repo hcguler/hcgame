@@ -1,0 +1,64 @@
+<div class="component-container">
+  <div class="component-header">
+    <h1>{{ title }}</h1>
+  </div>
+
+  <div class="component-content">
+    <div class="contact-form-container">
+      <p class="contact-intro">We'd love to hear from you! Please fill out the form below with your feedback or questions.</p>
+
+      <form [formGroup]="contactForm" (ngSubmit)="onSubmit()" class="contact-form">
+        <div class="form-group">
+          <label for="name">Name</label>
+          <input
+            type="text"
+            id="name"
+            formControlName="name"
+            [ngClass]="{ 'is-invalid': submitted && f['name'].errors }"
+            placeholder="Your name"
+          >
+          <div *ngIf="submitted && f['name'].errors" class="error-message">
+            <div *ngIf="f['name'].errors['required']">Name is required</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input
+            type="email"
+            id="email"
+            formControlName="email"
+            [ngClass]="{ 'is-invalid': submitted && f['email'].errors }"
+            placeholder="Your email address"
+          >
+          <div *ngIf="submitted && f['email'].errors" class="error-message">
+            <div *ngIf="f['email'].errors['required']">Email is required</div>
+            <div *ngIf="f['email'].errors['email']">Please enter a valid email address</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="message">Message</label>
+          <textarea
+            id="message"
+            formControlName="message"
+            [ngClass]="{ 'is-invalid': submitted && f['message'].errors }"
+            placeholder="Your message or feedback"
+            rows="5"
+          ></textarea>
+          <div *ngIf="submitted && f['message'].errors" class="error-message">
+            <div *ngIf="f['message'].errors['required']">Message is required</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <button type="submit" class="submit-button">Submit</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="component-footer">
+    <a routerLink="/" class="back-button">Back to Home</a>
+  </div>
+</div>

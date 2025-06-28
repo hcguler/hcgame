@@ -1,0 +1,103 @@
+<div class="component-container">
+  <div class="component-header">
+    <!-- Game Info Section -->
+    <div class="game-info">
+      <div class="target-number">
+        <span class="info-label">🎯 Target:</span>
+        <span class="info-value">{{ targetNumber }}</span>
+      </div>
+      <div class="timer">
+        <span class="info-label">⏱️ Time:</span>
+        <span class="info-value" [ngClass]="{'warning': timeLeft <= 30}">{{ formatTime(timeLeft) }}</span>
+      </div>
+    </div>
+
+    <!-- Control Buttons in Header -->
+    <div class="header-controls">
+      <button class="control-button undo" (click)="undoLastOperation()" [disabled]="operations.length === 0 && selectedNumbers.length === 0">
+        🔄 Undo
+      </button>
+      <button class="control-button clear" (click)="clearOperations()">
+        🧹 Clear
+      </button>
+    </div>
+  </div>
+
+  <div class="component-content">
+    <!-- Available Numbers -->
+    <div class="numbers-container">
+      <!-- Initial 6 numbers in fixed position -->
+      <div class="numbers-grid initial-numbers">
+        <button
+          *ngFor="let numberObj of initialNumbers; let i = index"
+          class="number-button"
+          (click)="selectNumber(numberObj.value, i)"
+          [disabled]="numberObj.used || selectedNumbers.length >= 2">
+          {{ numberObj.value }}
+        </button>
+      </div>
+
+      <!-- Operation results -->
+      <div class="numbers-grid result-numbers" *ngIf="resultNumbers.length > 0">
+        <button
+          *ngFor="let numberObj of resultNumbers; let i = index"
+          class="number-button result-button"
+          (click)="selectNumber(numberObj.value, i + initialNumbers.length)"
+          [disabled]="numberObj.used || selectedNumbers.length >= 2">
+          {{ numberObj.value }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Selected Numbers and Operations -->
+    <div class="operation-container">
+      <div class="selected-numbers">
+        <div class="selected-number" *ngIf="selectedNumbers[0] !== undefined">{{ selectedNumbers[0] }}</div>
+        <div class="selected-operator" *ngIf="selectedOperator">{{ selectedOperator }}</div>
+        <div class="selected-number" *ngIf="selectedNumbers[1] !== undefined">{{ selectedNumbers[1] }}</div>
+      </div>
+
+      <div class="operators">
+        <button class="operator-button" (click)="selectOperator('+')" [disabled]="selectedNumbers.length !== 2">+</button>
+        <button class="operator-button" (click)="selectOperator('-')" [disabled]="selectedNumbers.length !== 2">-</button>
+        <button class="operator-button" (click)="selectOperator('×')" [disabled]="selectedNumbers.length !== 2">×</button>
+        <button class="operator-button" (click)="selectOperator('÷')" [disabled]="selectedNumbers.length !== 2">÷</button>
+      </div>
+    </div>
+
+    <!-- Operations History -->
+    <div class="operations-history">
+      <h2>Operations ({{ operations.length }}/{{ maxOperations }})</h2>
+      <div class="operations-list">
+        <div class="operation-item" *ngFor="let op of operations">
+          {{ op.firstNumber }} {{ op.operator }} {{ op.secondNumber }} = {{ op.result }}
+        </div>
+        <div class="empty-operation" *ngFor="let _ of [].constructor(maxOperations - operations.length)"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="component-footer">
+    <button class="control-button reset" (click)="resetGame()">
+      🔄 New Game
+    </button>
+    <a routerLink="/" class="back-button">Back to Home</a>
+  </div>
+
+  <!-- Success Dialog -->
+  <div class="dialog-overlay" *ngIf="showSuccessDialog">
+    <div class="success-dialog">
+      <h2>🎉 Tebrikler! Hedef sayıya ulaştınız.</h2>
+      <button class="new-game-button" (click)="closeSuccessDialog()">🔁 Yeni Oyun</button>
+    </div>
+  </div>
+
+  <!-- Game Over Overlay - Only show when time has actually run out -->
+  <div class="dialog-overlay" *ngIf="isGameOver && !showSuccessDialog && timeLeft === 0">
+    <div class="game-over-dialog">
+      <h2>⏱️ Süre Doldu!</h2>
+      <p>Hedef sayı: {{ targetNumber }}</p>
+      <button class="new-game-button" (click)="resetGame()">🔁 Yeni Oyun</button>
+    </div>
+  </div>
+</div>
