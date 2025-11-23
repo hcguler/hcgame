@@ -4,400 +4,412 @@ import { CommonModule } from '@angular/common';
 import { interval, Subscription, BehaviorSubject } from 'rxjs';
 import { takeWhile } from 'rxjs/operators';
 
-interface Operation {
-  firstNumber: number;
-  secondNumber: number;
-  operator: string;
-  result: number;
+// Veri Modelleri
+interface SourceNumber {
+    id: number;
+    value: number;
+    isUsed: boolean;
+}
+
+interface Operand {
+    value: number;
+    sourceType: 'initial' | 'row-result';
+    sourceIndex: number;
+}
+
+interface CalculationRow {
+    leftOperand: Operand | null;
+    rightOperand: Operand | null;
+    operator: '+' | '-' | '*' | '/' | null;
+    result: number | null;
+    isValid: boolean;
+}
+
+interface GameState {
+    sourceNumbers: SourceNumber[];
+    calculationRows: CalculationRow[];
+    currentScore: number;
+}
+
+interface ScoreDetails {
+    total: number;
+    base: number;
+    timeBonus: number;
+    opsBonus: number;
+    distance: number;
 }
 
 @Component({
-  selector: 'app-practices',
-  standalone: true,
-  imports: [RouterLink, CommonModule],
-  templateUrl: './practices.component.html',
-  styleUrls: ['./practices.component.scss']
+    selector: 'app-practices',
+    standalone: true,
+    imports: [RouterLink, CommonModule],
+    templateUrl: './practices.component.html',
+    styleUrls: ['./practices.component.scss']
 })
 export class PracticesComponent implements OnInit, OnDestroy {
-  title = 'Number Target Game';
 
-  // Game constants
-  private readonly bigNumbers = [15, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90];
-  readonly maxOperations = 5;
-  private readonly gameTime = 90; // seconds
+    // --- Sabitler ---
+    readonly TARGET_MIN = 100;
+    readonly TARGET_MAX = 999;
+    readonly GAME_TIME = 90;
+    readonly MAX_DISTANCE_FOR_POINT = 10; // Puan almak için kabul edilebilir maksimim fark
 
-  // Game state
-  targetNumber = 0;
-  availableNumbers: number[] = [];
-  initialAvailableNumbers: number[] = []; // Store initial numbers for reset
-  allNumbers: { value: number, used: boolean }[] = []; // Track all numbers and their state
-  initialNumbers: { value: number, used: boolean }[] = []; // Initial 6 numbers
-  resultNumbers: { value: number, used: boolean }[] = []; // Operation results
-  operations: Operation[] = [];
-  selectedNumbers: number[] = [];
-  selectedOperator: string | null = null;
-  timeLeft = this.gameTime;
-  isGameOver = false;
-  showSuccessDialog = false;
+    // --- Oyun Durumu ---
+    targetNumber = 0;
+    timeLeft = this.GAME_TIME;
+    currentScore = 0;
+    isGameOver = false;
+    showSuccessDialog = false;
 
-  // RxJS
-  private timerSubscription: Subscription | null = null;
-  private gameActive = new BehaviorSubject<boolean>(false);
+    // Skor Detayları (Dialogda göstermek için)
+    scoreDetails: ScoreDetails = { total: 0, base: 0, timeBonus: 0, opsBonus: 0, distance: 0 };
 
-  ngOnInit(): void {
-    this.initGame();
-  }
+    // --- Veri Yapıları ---
+    sourceNumbers: SourceNumber[] = [];
+    calculationRows: CalculationRow[] = [];
 
-  ngOnDestroy(): void {
-    this.stopTimer();
-  }
+    // Undo Geçmişi
+    historyStack: string[] = [];
 
-  initGame(): void {
-    // Reset game state
-    this.targetNumber = this.generateTargetNumber();
-    this.availableNumbers = this.generateAvailableNumbers();
-    this.initialAvailableNumbers = [...this.availableNumbers]; // Store initial numbers
+    // RxJS
+    private timerSubscription: Subscription | null = null;
+    private gameActive = new BehaviorSubject<boolean>(false);
 
-    // Initialize allNumbers with initial numbers, all marked as unused
-    this.allNumbers = this.initialAvailableNumbers.map(value => ({ value, used: false }));
-
-    // Initialize initialNumbers and resultNumbers
-    this.initialNumbers = this.initialAvailableNumbers.map(value => ({ value, used: false }));
-    this.resultNumbers = [];
-
-    this.operations = [];
-    this.selectedNumbers = [];
-    this.selectedOperator = null;
-    this.timeLeft = this.gameTime;
-    this.isGameOver = false;
-    this.showSuccessDialog = false;
-
-    // Start timer
-    this.startTimer();
-  }
-
-  private generateTargetNumber(): number {
-    return Math.floor(Math.random() * 900) + 100; // 100-999
-  }
-
-  private generateAvailableNumbers(): number[] {
-    const smallNumbers: number[] = [];
-
-    // Generate 5 random small numbers (1-9)
-    while (smallNumbers.length < 5) {
-      const num = Math.floor(Math.random() * 9) + 1;
-      if (!smallNumbers.includes(num)) {
-        smallNumbers.push(num);
-      }
+    ngOnInit(): void {
+        this.initGame();
     }
 
-    // Select 1 random big number
-    const bigNumber = this.bigNumbers[Math.floor(Math.random() * this.bigNumbers.length)];
-
-    return [...smallNumbers, bigNumber];
-  }
-
-  private startTimer(): void {
-    this.stopTimer(); // Stop any existing timer
-    this.gameActive.next(true);
-
-    this.timerSubscription = interval(1000)
-      .pipe(takeWhile(() => this.gameActive.value))
-      .subscribe(() => {
-        if (this.timeLeft > 0) {
-          this.timeLeft--;
-        } else {
-          this.endGame();
-        }
-      });
-  }
-
-  private stopTimer(): void {
-    this.gameActive.next(false);
-    if (this.timerSubscription) {
-      this.timerSubscription.unsubscribe();
-      this.timerSubscription = null;
-    }
-  }
-
-  private endGame(): void {
-    this.stopTimer();
-    this.isGameOver = true;
-  }
-
-  selectNumber(number: number, index: number): void {
-    // Only check if we already have 2 selected numbers, allow selecting even when game is over
-    if (this.selectedNumbers.length >= 2) return;
-
-    // Determine if this is an initial number or a result number
-    if (index < this.initialNumbers.length) {
-      // This is an initial number
-      if (!this.initialNumbers[index].used) {
-        this.initialNumbers[index].used = true;
-        this.selectedNumbers.push(number);
-
-        // Also update allNumbers for consistency
-        const allNumbersIndex = this.allNumbers.findIndex(n => n.value === number && !n.used);
-        if (allNumbersIndex !== -1) {
-          this.allNumbers[allNumbersIndex].used = true;
-        }
-
-        // Also update availableNumbers for backward compatibility
-        const availableIndex = this.availableNumbers.indexOf(number);
-        if (availableIndex !== -1) {
-          this.availableNumbers.splice(availableIndex, 1);
-        }
-      }
-    } else {
-      // This is a result number
-      const resultIndex = index - this.initialNumbers.length;
-      if (resultIndex >= 0 && resultIndex < this.resultNumbers.length && !this.resultNumbers[resultIndex].used) {
-        this.resultNumbers[resultIndex].used = true;
-        this.selectedNumbers.push(number);
-
-        // Also update allNumbers for consistency
-        const allNumbersIndex = this.allNumbers.findIndex(n => n.value === number && !n.used);
-        if (allNumbersIndex !== -1) {
-          this.allNumbers[allNumbersIndex].used = true;
-        }
-
-        // Also update availableNumbers for backward compatibility
-        const availableIndex = this.availableNumbers.indexOf(number);
-        if (availableIndex !== -1) {
-          this.availableNumbers.splice(availableIndex, 1);
-        }
-      }
+    ngOnDestroy(): void {
+        this.stopTimer();
     }
 
-    // If game was over due to max operations, allow continuing
-    if (this.isGameOver && this.timeLeft > 0 && !this.showSuccessDialog) {
-      this.isGameOver = false;
-      this.startTimer();
+    // --- Başlangıç ---
+
+    initGame(): void {
+        this.stopTimer();
+        this.targetNumber = Math.floor(Math.random() * (this.TARGET_MAX - this.TARGET_MIN)) + this.TARGET_MIN;
+        this.timeLeft = this.GAME_TIME;
+        this.isGameOver = false;
+        this.showSuccessDialog = false;
+        this.historyStack = [];
+        this.currentScore = 0;
+        this.scoreDetails = { total: 0, base: 0, timeBonus: 0, opsBonus: 0, distance: 0 };
+
+        this.generateSourceNumbers();
+
+        this.calculationRows = Array(5).fill(null).map(() => ({
+            leftOperand: null,
+            rightOperand: null,
+            operator: null,
+            result: null,
+            isValid: true
+        }));
+
+        this.startTimer();
     }
-  }
 
-  selectOperator(operator: string): void {
-    // Only check if we have exactly 2 selected numbers, allow operations even when game is over
-    if (this.selectedNumbers.length !== 2) return;
+    generateSourceNumbers() {
+        // 1-9 arası 5 adet küçük sayı üret
+        const smalls = Array(5).fill(0).map(() => Math.floor(Math.random() * 9) + 1);
 
-    this.selectedOperator = operator;
-    this.performOperation();
-  }
+        // Listeden 1 adet büyük sayı seç
+        const bigs = [10, 25, 50, 75, 100];
+        const chosenBig = bigs[Math.floor(Math.random() * bigs.length)];
 
-  private performOperation(): void {
-    if (!this.selectedOperator || this.selectedNumbers.length !== 2) return;
+        // Sadece küçük sayıları kendi içinde karıştır
+        smalls.sort(() => Math.random() - 0.5);
 
-    const firstNumber = this.selectedNumbers[0];
-    const secondNumber = this.selectedNumbers[1];
-    let result = 0;
+        // Büyük sayıyı en sona ekle
+        const all = [...smalls, chosenBig];
 
-    switch (this.selectedOperator) {
-      case '+':
-        result = firstNumber + secondNumber;
-        break;
-      case '-':
-        result = firstNumber - secondNumber;
-        break;
-      case '×':
-        result = firstNumber * secondNumber;
-        break;
-      case '÷':
-        // Check for division by zero or non-integer result
-        if (secondNumber === 0 || firstNumber % secondNumber !== 0) {
-          // Reset selection if invalid operation
-          this.resetSelection();
-          return;
+        this.sourceNumbers = all.map((val, idx) => ({
+            id: idx,
+            value: val,
+            isUsed: false
+        }));
+    }
+
+    get nextEmptySlot(): { rowIndex: number, side: 'left' | 'right' } | null {
+        for (let i = 0; i < this.calculationRows.length; i++) {
+            if (!this.calculationRows[i].leftOperand) {
+                return { rowIndex: i, side: 'left' };
+            }
+            if (!this.calculationRows[i].rightOperand) {
+                return { rowIndex: i, side: 'right' };
+            }
         }
-        result = firstNumber / secondNumber;
-        break;
+        return null;
     }
 
-    // Add operation to history
-    const operation: Operation = {
-      firstNumber,
-      secondNumber,
-      operator: this.selectedOperator,
-      result
-    };
+    // --- Kullanıcı Etkileşimleri ---
 
-    this.operations.push(operation);
+    onOperandClick(rowIndex: number, side: 'left' | 'right') {
+        if (this.isGameOver) return;
 
-    // Add result to available numbers, allNumbers, and resultNumbers
-    this.availableNumbers.push(result);
-    this.allNumbers.push({ value: result, used: false });
-    this.resultNumbers.push({ value: result, used: false });
+        const row = this.calculationRows[rowIndex];
+        const operand = side === 'left' ? row.leftOperand : row.rightOperand;
 
-    // Check if target reached
-    if (result === this.targetNumber) {
-      this.showSuccessDialog = true;
-      this.stopTimer();
+        if (operand) {
+            this.saveStateToHistory();
+            if (side === 'left') row.leftOperand = null;
+            else row.rightOperand = null;
+
+            this.recalculateAll();
+        }
     }
 
-    // Check if max operations reached
-    if (this.operations.length >= this.maxOperations) {
-      this.endGame();
+    onSourceNumberClick(sourceNum: SourceNumber) {
+        if (sourceNum.isUsed || this.isGameOver) return;
+
+        const target = this.nextEmptySlot;
+        if (!target) return;
+
+        this.saveStateToHistory();
+
+        const row = this.calculationRows[target.rowIndex];
+        const newOperand: Operand = {
+            value: sourceNum.value,
+            sourceType: 'initial',
+            sourceIndex: sourceNum.id
+        };
+
+        if (target.side === 'left') row.leftOperand = newOperand;
+        else row.rightOperand = newOperand;
+
+        this.recalculateAll();
     }
 
-    // Reset selection
-    this.resetSelection();
-  }
+    onResultClick(sourceRowIndex: number) {
+        if (this.isGameOver) return;
 
-  private resetSelection(): void {
-    this.selectedNumbers = [];
-    this.selectedOperator = null;
-  }
+        const sourceRow = this.calculationRows[sourceRowIndex];
+        if (sourceRow.result === null) return;
 
-  undoLastOperation(): void {
-    // If there are operations to undo
-    if (this.operations.length > 0) {
-      const lastOperation = this.operations.pop();
-      if (lastOperation) {
-        // Remove the result from allNumbers
-        const resultIndex = this.allNumbers.findIndex(n => n.value === lastOperation.result);
-        if (resultIndex !== -1) {
-          this.allNumbers.splice(resultIndex, 1);
+        const target = this.nextEmptySlot;
+        if (!target || target.rowIndex <= sourceRowIndex) return;
+
+        this.saveStateToHistory();
+
+        const newOperand: Operand = {
+            value: sourceRow.result,
+            sourceType: 'row-result',
+            sourceIndex: sourceRowIndex
+        };
+
+        if (target.side === 'left') this.calculationRows[target.rowIndex].leftOperand = newOperand;
+        else this.calculationRows[target.rowIndex].rightOperand = newOperand;
+
+        this.recalculateAll();
+    }
+
+    setOperator(rowIndex: number, op: '+' | '-' | '*' | '/') {
+        if (this.isGameOver) return;
+        if (this.calculationRows[rowIndex].operator === op) return;
+
+        this.saveStateToHistory();
+        this.calculationRows[rowIndex].operator = op;
+        this.recalculateAll();
+    }
+
+    // --- Çekirdek Mantık ---
+
+    recalculateAll() {
+        this.sourceNumbers.forEach(s => s.isUsed = false);
+
+        for (let i = 0; i < this.calculationRows.length; i++) {
+            const row = this.calculationRows[i];
+
+            // Sol operand
+            if (row.leftOperand) {
+                if (row.leftOperand.sourceType === 'initial') {
+                    const source = this.sourceNumbers.find(s => s.id === row.leftOperand!.sourceIndex);
+                    if (source) source.isUsed = true;
+                } else {
+                    const prevRow = this.calculationRows[row.leftOperand.sourceIndex];
+                    if (prevRow && prevRow.result !== null) {
+                        row.leftOperand.value = prevRow.result;
+                    } else {
+                        row.leftOperand = null;
+                    }
+                }
+            }
+
+            // Sağ operand
+            if (row.rightOperand) {
+                if (row.rightOperand.sourceType === 'initial') {
+                    const source = this.sourceNumbers.find(s => s.id === row.rightOperand!.sourceIndex);
+                    if (source) source.isUsed = true;
+                } else {
+                    const prevRow = this.calculationRows[row.rightOperand.sourceIndex];
+                    if (prevRow && prevRow.result !== null) {
+                        row.rightOperand.value = prevRow.result;
+                    } else {
+                        row.rightOperand = null;
+                    }
+                }
+            }
+
+            // İşlem
+            if (row.leftOperand && row.rightOperand && row.operator) {
+                const v1 = row.leftOperand.value;
+                const v2 = row.rightOperand.value;
+                let res = 0;
+
+                switch (row.operator) {
+                    case '+': res = v1 + v2; break;
+                    case '-': res = v1 - v2; break;
+                    case '*': res = v1 * v2; break;
+                    case '/': res = v1 / v2; break;
+                }
+
+                row.result = Math.round(res * 100) / 100;
+                row.isValid = Number.isInteger(res) && res >= 0;
+            } else {
+                row.result = null;
+                row.isValid = true;
+            }
         }
 
-        // Remove the result from resultNumbers
-        const resultNumberIndex = this.resultNumbers.findIndex(n => n.value === lastOperation.result);
-        if (resultNumberIndex !== -1) {
-          this.resultNumbers.splice(resultNumberIndex, 1);
+        // Sadece tam isabet varsa oyunu anında bitir
+        const exactMatch = this.calculationRows.some(r => r.result === this.targetNumber);
+        if (exactMatch) {
+            this.finishGame(0); // 0 fark ile bitir
         }
-
-        // Mark the original numbers as unused
-        // For initialNumbers
-        const firstInitialIndex = this.initialNumbers.findIndex(n => n.value === lastOperation.firstNumber);
-        if (firstInitialIndex !== -1) {
-          this.initialNumbers[firstInitialIndex].used = false;
-        }
-
-        const secondInitialIndex = this.initialNumbers.findIndex(n => n.value === lastOperation.secondNumber);
-        if (secondInitialIndex !== -1) {
-          this.initialNumbers[secondInitialIndex].used = false;
-        }
-
-        // For resultNumbers
-        const firstResultIndex = this.resultNumbers.findIndex(n => n.value === lastOperation.firstNumber);
-        if (firstResultIndex !== -1) {
-          this.resultNumbers[firstResultIndex].used = false;
-        }
-
-        const secondResultIndex = this.resultNumbers.findIndex(n => n.value === lastOperation.secondNumber);
-        if (secondResultIndex !== -1) {
-          this.resultNumbers[secondResultIndex].used = false;
-        }
-
-        // Also update allNumbers for consistency
-        const firstNumberObj = this.allNumbers.find(n => n.value === lastOperation.firstNumber);
-        const secondNumberObj = this.allNumbers.find(n => n.value === lastOperation.secondNumber);
-
-        if (firstNumberObj) firstNumberObj.used = false;
-        if (secondNumberObj) secondNumberObj.used = false;
-
-        // Also update availableNumbers for backward compatibility
-        const availableResultIndex = this.availableNumbers.indexOf(lastOperation.result);
-        if (availableResultIndex !== -1) {
-          this.availableNumbers.splice(availableResultIndex, 1);
-        }
-        this.availableNumbers.push(lastOperation.firstNumber);
-        this.availableNumbers.push(lastOperation.secondNumber);
-
-        // Reset selection
-        this.resetSelection();
-      }
-    }
-    // If there are selected numbers but no operation yet
-    else if (this.selectedNumbers.length > 0) {
-      // If two numbers are selected, remove the last one
-      if (this.selectedNumbers.length === 2) {
-        const numberToUndo = this.selectedNumbers.pop();
-        if (numberToUndo != null) {
-          this.makeNumberSelectable(numberToUndo);
-        }
-      }
-      // If one number is selected, remove it
-      else if (this.selectedNumbers.length === 1) {
-        const numberToUndo = this.selectedNumbers.pop();
-        if (numberToUndo != null) {
-          this.makeNumberSelectable(numberToUndo);
-        }
-      }
     }
 
-    // If game was over due to max operations, allow continuing
-    if (this.isGameOver && this.timeLeft > 0 && !this.showSuccessDialog) {
-      this.isGameOver = false;
-      this.startTimer();
-    }
-  }
+    // En iyi (hedefe en yakın) sonucu bulur
+    getBestResultDiff(): number {
+        let minDiff = Number.MAX_VALUE;
 
-  // Helper method to make a number selectable again
-  private makeNumberSelectable(number: number): void {
-    if (number === undefined) return;
+        this.calculationRows.forEach(row => {
+            if (row.result !== null) {
+                const diff = Math.abs(this.targetNumber - row.result);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                }
+            }
+        });
 
-    // Check if it's an initial number
-    const initialIndex = this.initialNumbers.findIndex(n => n.value === number && n.used);
-    if (initialIndex !== -1) {
-      this.initialNumbers[initialIndex].used = false;
-    }
-
-    // Check if it's a result number
-    const resultIndex = this.resultNumbers.findIndex(n => n.value === number && n.used);
-    if (resultIndex !== -1) {
-      this.resultNumbers[resultIndex].used = false;
+        return minDiff === Number.MAX_VALUE ? this.targetNumber : minDiff;
     }
 
-    // Update allNumbers for consistency
-    const allNumbersIndex = this.allNumbers.findIndex(n => n.value === number && n.used);
-    if (allNumbersIndex !== -1) {
-      this.allNumbers[allNumbersIndex].used = false;
+    finishGame(distance: number) {
+        this.stopTimer();
+        this.isGameOver = true;
+        this.calculateScore(distance);
+        this.currentScore += this.scoreDetails.total;
+        this.showSuccessDialog = true;
     }
 
-    // Update availableNumbers for backward compatibility
-    if (!this.availableNumbers.includes(number)) {
-      this.availableNumbers.push(number);
+    // --- SKOR FONKSİYONU ---
+    calculateScore(distance: number) {
+        let base = 0;
+        let timeBonus = 0;
+        let opsBonus = 0;
+
+        // 1. Baz Puan (Yakınlığa göre)
+        if (distance === 0) {
+            base = 1000; // Tam isabet
+        } else if (distance <= this.MAX_DISTANCE_FOR_POINT) {
+            // 10 fark varsa 0, 1 fark varsa 450 puan
+            base = (this.MAX_DISTANCE_FOR_POINT - distance) * 50;
+        }
+
+        // 2. Süre Bonusu (Her saniye 10 puan)
+        // Tam isabet değilse süre bonusunu yarıya düşürebiliriz veya vermeyebiliriz.
+        // Burada tam isabet değilse de veriyoruz ama motivasyon olsun.
+        timeBonus = this.timeLeft * 10;
+
+        // 3. Verimlilik Bonusu (Daha az satır kullanma)
+        // Sadece sonuç geçerliyse (puan alınmışsa) verimlilik ekle
+        if (base > 0) {
+            const usedRows = this.calculationRows.filter(r => r.result !== null).length;
+            const unusedRows = 5 - usedRows;
+            opsBonus = unusedRows * 50;
+        }
+
+        const total = base + timeBonus + opsBonus;
+
+        this.scoreDetails = {
+            total,
+            base,
+            timeBonus,
+            opsBonus,
+            distance
+        };
     }
-  }
 
-  clearOperations(): void {
-    // Allow clearing even when game is over
+    // --- Undo / History ---
 
-    // Reset operations without changing the target number
-    this.operations = [];
-    this.selectedNumbers = [];
-    this.selectedOperator = null;
-
-    // Reset initialNumbers to their initial state
-    this.initialNumbers = this.initialAvailableNumbers.map(value => ({ value, used: false }));
-
-    // Clear resultNumbers
-    this.resultNumbers = [];
-
-    // Reset all numbers to their initial state for consistency
-    this.allNumbers = this.initialAvailableNumbers.map(value => ({ value, used: false }));
-
-    // Restore initial available numbers in original order for backward compatibility
-    this.availableNumbers = [...this.initialAvailableNumbers];
-
-    // If game was over due to max operations, allow continuing
-    if (this.isGameOver && this.timeLeft > 0 && !this.showSuccessDialog) {
-      this.isGameOver = false;
-      this.startTimer();
+    saveStateToHistory() {
+        const state: GameState = {
+            sourceNumbers: JSON.parse(JSON.stringify(this.sourceNumbers)),
+            calculationRows: JSON.parse(JSON.stringify(this.calculationRows)),
+            currentScore: this.currentScore
+        };
+        this.historyStack.push(JSON.stringify(state));
     }
-  }
 
-  resetGame(): void {
-    this.initGame();
-  }
+    undoLastAction() {
+        if (this.historyStack.length === 0) return;
 
-  closeSuccessDialog(): void {
-    this.showSuccessDialog = false;
-    this.resetGame();
-  }
+        const previousJson = this.historyStack.pop();
+        if (previousJson) {
+            const state: GameState = JSON.parse(previousJson);
+            this.sourceNumbers = state.sourceNumbers;
+            this.calculationRows = state.calculationRows;
+            this.currentScore = state.currentScore;
+        }
+    }
 
-  formatTime(seconds: number): string {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  }
+    clearAll() {
+        this.saveStateToHistory();
+        this.calculationRows.forEach(r => {
+            r.leftOperand = null;
+            r.rightOperand = null;
+            r.operator = null;
+            r.result = null;
+        });
+        this.recalculateAll();
+    }
+
+    resetGame() {
+        this.initGame();
+    }
+
+    isNextTarget(rowIndex: number, side: 'left' | 'right'): boolean {
+        const target = this.nextEmptySlot;
+        return target !== null && target.rowIndex === rowIndex && target.side === side;
+    }
+
+    startTimer() {
+        this.gameActive.next(true);
+        this.timerSubscription = interval(1000).pipe(takeWhile(() => this.gameActive.value)).subscribe(() => {
+            if (this.timeLeft > 0) {
+                this.timeLeft--;
+            } else {
+                // Süre bitti!
+                this.stopTimer();
+                const bestDiff = this.getBestResultDiff();
+
+                if (bestDiff <= this.MAX_DISTANCE_FOR_POINT) {
+                    // Süre bitti ama yeterince yakınız
+                    this.finishGame(bestDiff);
+                } else {
+                    // Kaybettik
+                    this.isGameOver = true;
+                }
+            }
+        });
+    }
+
+    stopTimer() {
+        this.gameActive.next(false);
+    }
+
+    formatTime(s: number): string {
+        const m = Math.floor(s / 60);
+        const sec = s % 60;
+        return `${m}:${sec < 10 ? '0' : ''}${sec}`;
+    }
 }

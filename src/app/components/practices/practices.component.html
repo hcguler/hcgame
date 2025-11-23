@@ -1,103 +1,138 @@
-<div class="component-container">
-  <div class="component-header">
-    <!-- Game Info Section -->
-    <div class="game-info">
-      <div class="target-number">
-        <span class="info-label">🎯 Target:</span>
-        <span class="info-value">{{ targetNumber }}</span>
-      </div>
-      <div class="timer">
-        <span class="info-label">⏱️ Time:</span>
-        <span class="info-value" [ngClass]="{'warning': timeLeft <= 30}">{{ formatTime(timeLeft) }}</span>
-      </div>
-    </div>
-
-    <!-- Control Buttons in Header -->
-    <div class="header-controls">
-      <button class="control-button undo" (click)="undoLastOperation()" [disabled]="operations.length === 0 && selectedNumbers.length === 0">
-        🔄 Undo
-      </button>
-      <button class="control-button clear" (click)="clearOperations()">
-        🧹 Clear
-      </button>
-    </div>
-  </div>
-
-  <div class="component-content">
-    <!-- Available Numbers -->
-    <div class="numbers-container">
-      <!-- Initial 6 numbers in fixed position -->
-      <div class="numbers-grid initial-numbers">
-        <button
-          *ngFor="let numberObj of initialNumbers; let i = index"
-          class="number-button"
-          (click)="selectNumber(numberObj.value, i)"
-          [disabled]="numberObj.used || selectedNumbers.length >= 2">
-          {{ numberObj.value }}
-        </button>
-      </div>
-
-      <!-- Operation results -->
-      <div class="numbers-grid result-numbers" *ngIf="resultNumbers.length > 0">
-        <button
-          *ngFor="let numberObj of resultNumbers; let i = index"
-          class="number-button result-button"
-          (click)="selectNumber(numberObj.value, i + initialNumbers.length)"
-          [disabled]="numberObj.used || selectedNumbers.length >= 2">
-          {{ numberObj.value }}
-        </button>
-      </div>
-    </div>
-
-    <!-- Selected Numbers and Operations -->
-    <div class="operation-container">
-      <div class="selected-numbers">
-        <div class="selected-number" *ngIf="selectedNumbers[0] !== undefined">{{ selectedNumbers[0] }}</div>
-        <div class="selected-operator" *ngIf="selectedOperator">{{ selectedOperator }}</div>
-        <div class="selected-number" *ngIf="selectedNumbers[1] !== undefined">{{ selectedNumbers[1] }}</div>
-      </div>
-
-      <div class="operators">
-        <button class="operator-button" (click)="selectOperator('+')" [disabled]="selectedNumbers.length !== 2">+</button>
-        <button class="operator-button" (click)="selectOperator('-')" [disabled]="selectedNumbers.length !== 2">-</button>
-        <button class="operator-button" (click)="selectOperator('×')" [disabled]="selectedNumbers.length !== 2">×</button>
-        <button class="operator-button" (click)="selectOperator('÷')" [disabled]="selectedNumbers.length !== 2">÷</button>
-      </div>
-    </div>
-
-    <!-- Operations History -->
-    <div class="operations-history">
-      <h2>Operations ({{ operations.length }}/{{ maxOperations }})</h2>
-      <div class="operations-list">
-        <div class="operation-item" *ngFor="let op of operations">
-          {{ op.firstNumber }} {{ op.operator }} {{ op.secondNumber }} = {{ op.result }}
+<div class="game-container">
+    <!-- Header -->
+    <header class="game-header">
+        <div class="header-box target-box">
+            <span class="label">Target</span>
+            <span class="value">{{ targetNumber }}</span>
         </div>
-        <div class="empty-operation" *ngFor="let _ of [].constructor(maxOperations - operations.length)"></div>
-      </div>
-    </div>
-  </div>
+        <div class="header-box time-box">
+            <span class="label">Time</span>
+            <span class="value" [class.warning]="timeLeft <= 30">{{ formatTime(timeLeft) }}</span>
+        </div>
+    </header>
 
-  <div class="component-footer">
-    <button class="control-button reset" (click)="resetGame()">
-      🔄 New Game
-    </button>
-    <a routerLink="/" class="back-button">Back to Home</a>
-  </div>
-
-  <!-- Success Dialog -->
-  <div class="dialog-overlay" *ngIf="showSuccessDialog">
-    <div class="success-dialog">
-      <h2>🎉 Tebrikler! Hedef sayıya ulaştınız.</h2>
-      <button class="new-game-button" (click)="closeSuccessDialog()">🔁 Yeni Oyun</button>
+    <!-- Actions -->
+    <div class="actions-bar">
+        <button class="action-btn undo-btn" (click)="undoLastAction()" [disabled]="historyStack.length === 0">
+            <span>↶</span> Undo
+        </button>
+        <button class="action-btn clear-btn" (click)="clearAll()">
+            Clear
+        </button>
     </div>
-  </div>
 
-  <!-- Game Over Overlay - Only show when time has actually run out -->
-  <div class="dialog-overlay" *ngIf="isGameOver && !showSuccessDialog && timeLeft === 0">
-    <div class="game-over-dialog">
-      <h2>⏱️ Süre Doldu!</h2>
-      <p>Hedef sayı: {{ targetNumber }}</p>
-      <button class="new-game-button" (click)="resetGame()">🔁 Yeni Oyun</button>
+    <!-- Source Numbers -->
+    <div class="source-numbers-area">
+        <button
+                *ngFor="let num of sourceNumbers"
+                class="number-card source-card"
+                [class.used]="num.isUsed"
+                [disabled]="num.isUsed"
+                (click)="onSourceNumberClick(num)">
+            {{ num.value }}
+        </button>
     </div>
-  </div>
+
+    <!-- Calculation Grid -->
+    <div class="calculation-grid">
+        <div class="calc-row" *ngFor="let row of calculationRows; let i = index">
+
+            <!-- Left Operand -->
+            <div class="operand-box"
+                 [class.empty]="!row.leftOperand"
+                 [class.filled]="row.leftOperand"
+                 [class.active-target]="isNextTarget(i, 'left')"
+                 (click)="onOperandClick(i, 'left')">
+                {{ row.leftOperand?.value }}
+            </div>
+
+            <!-- Operators -->
+            <div class="operator-group">
+                <button class="op-radio" [class.selected]="row.operator === '+'" (click)="setOperator(i, '+')">+</button>
+                <button class="op-radio" [class.selected]="row.operator === '-'" (click)="setOperator(i, '-')">-</button>
+                <button class="op-radio" [class.selected]="row.operator === '*'" (click)="setOperator(i, '*')">×</button>
+                <button class="op-radio" [class.selected]="row.operator === '/'" (click)="setOperator(i, '/')">÷</button>
+            </div>
+
+            <!-- Right Operand -->
+            <div class="operand-box"
+                 [class.empty]="!row.rightOperand"
+                 [class.filled]="row.rightOperand"
+                 [class.active-target]="isNextTarget(i, 'right')"
+                 (click)="onOperandClick(i, 'right')">
+                {{ row.rightOperand?.value }}
+            </div>
+
+            <!-- Equals -->
+            <div class="equals-sign">=</div>
+
+            <!-- Result -->
+            <div class="result-box"
+                 [class.has-result]="row.result !== null"
+                 (click)="onResultClick(i)">
+                {{ row.result }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Score -->
+    <div class="score-section">
+        <div class="score-box">
+            <span class="label">Toplam Puan:</span>
+            <span class="value">{{ currentScore }}</span>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="game-footer">
+        <button class="footer-btn new-game" (click)="resetGame()">
+            Yeni Oyun
+        </button>
+        <button class="footer-btn back-home" routerLink="/">
+            Back to Home
+        </button>
+    </footer>
+
+    <!-- Modals -->
+    <div class="dialog-overlay" *ngIf="showSuccessDialog || (isGameOver && timeLeft === 0 && !showSuccessDialog)">
+
+        <!-- SUCCESS / PARTIAL SUCCESS DIALOG -->
+        <div class="dialog-content success" *ngIf="showSuccessDialog">
+            <h2 *ngIf="scoreDetails.distance === 0">🎉 Mükemmel!</h2>
+            <h2 *ngIf="scoreDetails.distance > 0">😅 Yaklaştın!</h2>
+
+            <div class="score-breakdown">
+                <p>Hedef: <strong>{{ targetNumber }}</strong></p>
+                <p *ngIf="scoreDetails.distance > 0">Fark: <span class="minus">-{{ scoreDetails.distance }}</span></p>
+
+                <div class="breakdown-list">
+                    <div class="b-item">
+                        <span>İsabet Puanı:</span>
+                        <span>{{ scoreDetails.base }}</span>
+                    </div>
+                    <div class="b-item">
+                        <span>Süre Bonusu:</span>
+                        <span>+{{ scoreDetails.timeBonus }}</span>
+                    </div>
+                    <div class="b-item">
+                        <span>Verimlilik:</span>
+                        <span>+{{ scoreDetails.opsBonus }}</span>
+                    </div>
+                    <div class="b-total">
+                        <span>TOPLAM:</span>
+                        <span>{{ scoreDetails.total }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <button (click)="resetGame()">Yeni Oyun</button>
+        </div>
+
+        <!-- GAME OVER DIALOG -->
+        <div class="dialog-content fail" *ngIf="isGameOver && !showSuccessDialog">
+            <h2>⏱️ Süre Doldu!</h2>
+            <p>Hedef sayıya ({{ targetNumber }}) veya yakınına ulaşamadın.</p>
+            <button (click)="resetGame()">Tekrar Dene</button>
+        </div>
+    </div>
 </div>
