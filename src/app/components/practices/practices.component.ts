@@ -23,6 +23,7 @@ interface CalculationRow {
     operator: '+' | '-' | '*' | '/' | null;
     result: number | null;
     isValid: boolean;
+    isResultUsed: boolean; // YENİ: Bu satırın sonucu başka bir yerde kullanıldı mı?
 }
 
 interface GameState {
@@ -52,7 +53,7 @@ export class PracticesComponent implements OnInit, OnDestroy {
     readonly TARGET_MIN = 100;
     readonly TARGET_MAX = 999;
     readonly GAME_TIME = 90;
-    readonly MAX_DISTANCE_FOR_POINT = 10; // Puan almak için kabul edilebilir maksimim fark
+    readonly MAX_DISTANCE_FOR_POINT = 10;
 
     // --- Oyun Durumu ---
     targetNumber = 0;
@@ -60,15 +61,11 @@ export class PracticesComponent implements OnInit, OnDestroy {
     currentScore = 0;
     isGameOver = false;
     showSuccessDialog = false;
-
-    // Skor Detayları (Dialogda göstermek için)
     scoreDetails: ScoreDetails = { total: 0, base: 0, timeBonus: 0, opsBonus: 0, distance: 0 };
 
     // --- Veri Yapıları ---
     sourceNumbers: SourceNumber[] = [];
     calculationRows: CalculationRow[] = [];
-
-    // Undo Geçmişi
     historyStack: string[] = [];
 
     // RxJS
@@ -102,24 +99,19 @@ export class PracticesComponent implements OnInit, OnDestroy {
             rightOperand: null,
             operator: null,
             result: null,
-            isValid: true
+            isValid: true,
+            isResultUsed: false // Başlangıçta kullanılmadı
         }));
 
         this.startTimer();
     }
 
     generateSourceNumbers() {
-        // 1-9 arası 5 adet küçük sayı üret
         const smalls = Array(5).fill(0).map(() => Math.floor(Math.random() * 9) + 1);
-
-        // Listeden 1 adet büyük sayı seç
         const bigs = [10, 25, 50, 75, 100];
         const chosenBig = bigs[Math.floor(Math.random() * bigs.length)];
 
-        // Sadece küçük sayıları kendi içinde karıştır
         smalls.sort(() => Math.random() - 0.5);
-
-        // Büyük sayıyı en sona ekle
         const all = [...smalls, chosenBig];
 
         this.sourceNumbers = all.map((val, idx) => ({
@@ -183,7 +175,9 @@ export class PracticesComponent implements OnInit, OnDestroy {
         if (this.isGameOver) return;
 
         const sourceRow = this.calculationRows[sourceRowIndex];
-        if (sourceRow.result === null) return;
+
+        // EĞER SONUÇ YOKSA VEYA ZATEN KULLANILDIYSA İŞLEM YAPMA
+        if (sourceRow.result === null || sourceRow.isResultUsed) return;
 
         const target = this.nextEmptySlot;
         if (!target || target.rowIndex <= sourceRowIndex) return;
@@ -214,27 +208,33 @@ export class PracticesComponent implements OnInit, OnDestroy {
     // --- Çekirdek Mantık ---
 
     recalculateAll() {
+        // 1. Her şeyi sıfırla (Temiz sayfa)
         this.sourceNumbers.forEach(s => s.isUsed = false);
+        this.calculationRows.forEach(r => r.isResultUsed = false);
 
+        // 2. Satır satır tara ve bağımlılıkları işle
         for (let i = 0; i < this.calculationRows.length; i++) {
             const row = this.calculationRows[i];
 
-            // Sol operand
+            // Sol Operand Kontrolü
             if (row.leftOperand) {
                 if (row.leftOperand.sourceType === 'initial') {
                     const source = this.sourceNumbers.find(s => s.id === row.leftOperand!.sourceIndex);
                     if (source) source.isUsed = true;
                 } else {
+                    // Önceki işlem sonucu kullanılıyor
                     const prevRow = this.calculationRows[row.leftOperand.sourceIndex];
                     if (prevRow && prevRow.result !== null) {
                         row.leftOperand.value = prevRow.result;
+                        prevRow.isResultUsed = true; // YENİ: Önceki satırın sonucunu "KULLANILDI" işaretle
                     } else {
+                        // Kaynak satır silindiyse veya sonucu yoksa, bu operandı da sil
                         row.leftOperand = null;
                     }
                 }
             }
 
-            // Sağ operand
+            // Sağ Operand Kontrolü
             if (row.rightOperand) {
                 if (row.rightOperand.sourceType === 'initial') {
                     const source = this.sourceNumbers.find(s => s.id === row.rightOperand!.sourceIndex);
@@ -243,13 +243,14 @@ export class PracticesComponent implements OnInit, OnDestroy {
                     const prevRow = this.calculationRows[row.rightOperand.sourceIndex];
                     if (prevRow && prevRow.result !== null) {
                         row.rightOperand.value = prevRow.result;
+                        prevRow.isResultUsed = true; // YENİ: Önceki satırın sonucunu "KULLANILDI" işaretle
                     } else {
                         row.rightOperand = null;
                     }
                 }
             }
 
-            // İşlem
+            // İşlemi Hesapla
             if (row.leftOperand && row.rightOperand && row.operator) {
                 const v1 = row.leftOperand.value;
                 const v2 = row.rightOperand.value;
@@ -270,14 +271,12 @@ export class PracticesComponent implements OnInit, OnDestroy {
             }
         }
 
-        // Sadece tam isabet varsa oyunu anında bitir
         const exactMatch = this.calculationRows.some(r => r.result === this.targetNumber);
         if (exactMatch) {
-            this.finishGame(0); // 0 fark ile bitir
+            this.finishGame(0);
         }
     }
 
-    // En iyi (hedefe en yakın) sonucu bulur
     getBestResultDiff(): number {
         let minDiff = Number.MAX_VALUE;
 
@@ -301,27 +300,19 @@ export class PracticesComponent implements OnInit, OnDestroy {
         this.showSuccessDialog = true;
     }
 
-    // --- SKOR FONKSİYONU ---
     calculateScore(distance: number) {
         let base = 0;
         let timeBonus = 0;
         let opsBonus = 0;
 
-        // 1. Baz Puan (Yakınlığa göre)
         if (distance === 0) {
-            base = 1000; // Tam isabet
+            base = 1000;
         } else if (distance <= this.MAX_DISTANCE_FOR_POINT) {
-            // 10 fark varsa 0, 1 fark varsa 450 puan
             base = (this.MAX_DISTANCE_FOR_POINT - distance) * 50;
         }
 
-        // 2. Süre Bonusu (Her saniye 10 puan)
-        // Tam isabet değilse süre bonusunu yarıya düşürebiliriz veya vermeyebiliriz.
-        // Burada tam isabet değilse de veriyoruz ama motivasyon olsun.
         timeBonus = this.timeLeft * 10;
 
-        // 3. Verimlilik Bonusu (Daha az satır kullanma)
-        // Sadece sonuç geçerliyse (puan alınmışsa) verimlilik ekle
         if (base > 0) {
             const usedRows = this.calculationRows.filter(r => r.result !== null).length;
             const unusedRows = 5 - usedRows;
@@ -330,16 +321,8 @@ export class PracticesComponent implements OnInit, OnDestroy {
 
         const total = base + timeBonus + opsBonus;
 
-        this.scoreDetails = {
-            total,
-            base,
-            timeBonus,
-            opsBonus,
-            distance
-        };
+        this.scoreDetails = { total, base, timeBonus, opsBonus, distance };
     }
-
-    // --- Undo / History ---
 
     saveStateToHistory() {
         const state: GameState = {
@@ -388,15 +371,11 @@ export class PracticesComponent implements OnInit, OnDestroy {
             if (this.timeLeft > 0) {
                 this.timeLeft--;
             } else {
-                // Süre bitti!
                 this.stopTimer();
                 const bestDiff = this.getBestResultDiff();
-
                 if (bestDiff <= this.MAX_DISTANCE_FOR_POINT) {
-                    // Süre bitti ama yeterince yakınız
                     this.finishGame(bestDiff);
                 } else {
-                    // Kaybettik
                     this.isGameOver = true;
                 }
             }

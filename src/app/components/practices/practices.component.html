@@ -13,11 +13,11 @@
 
     <!-- Actions -->
     <div class="actions-bar">
-        <button class="action-btn undo-btn" (click)="undoLastAction()" [disabled]="historyStack.length === 0">
-            <span>↶</span> Undo
-        </button>
         <button class="action-btn clear-btn" (click)="clearAll()">
             Clear
+        </button>
+        <button class="action-btn undo-btn" (click)="undoLastAction()" [disabled]="historyStack.length === 0">
+            <span>↶</span> Undo
         </button>
     </div>
 
@@ -66,9 +66,10 @@
             <!-- Equals -->
             <div class="equals-sign">=</div>
 
-            <!-- Result -->
+            <!-- Result (YENİ: [class.used] eklendi) -->
             <div class="result-box"
                  [class.has-result]="row.result !== null"
+                 [class.used]="row.isResultUsed"
                  (click)="onResultClick(i)">
                 {{ row.result }}
             </div>
