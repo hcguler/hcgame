@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
-<title>Kelime Oyunu - Final</title>
+<title>Kelime Oyunu - Gold</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
@@ -35,7 +35,7 @@
         user-select: none; 
         -webkit-user-select: none; 
         overscroll-behavior: none; 
-        touch-action: none; /* Mobilde scroll'u komple kapatır */
+        touch-action: none; 
     }
     .scrollbar-hide::-webkit-scrollbar { display: none; }
     
@@ -88,27 +88,30 @@
 
     <div class="flex-shrink-0 flex flex-col items-center justify-start pt-6 w-full relative z-20 bg-white dark:bg-gray-900">
         
-        <div id="game-board" class="relative w-[320px] h-[320px] flex items-center justify-center touch-none select-none">
+        <div id="game-board" class="relative w-[320px] h-[320px] flex items-center justify-center touch-none select-none mb-2">
             <canvas id="line-canvas" class="absolute inset-0 z-0 pointer-events-none" width="320" height="320"></canvas>
             
             <div class="absolute w-[260px] h-[260px] bg-gray-50 dark:bg-gray-800/40 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-full -z-10"></div>
             
             <div id="circle-container" class="absolute inset-0 z-10 w-full h-full"></div>
 
-            <div class="absolute -bottom-2 flex space-x-4 z-20 pointer-events-auto">
+            <div class="absolute bottom-0 left-2 z-20 pointer-events-auto">
                 <button onclick="shuffleLetters()" class="w-12 h-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full shadow-lg flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-primary hover:border-primary active:scale-90 transition-all">
                     <span class="material-symbols-outlined text-2xl">shuffle</span>
                 </button>
+            </div>
+            
+            <div class="absolute bottom-0 right-2 z-20 pointer-events-auto">
                 <button onclick="removeLastChar()" class="w-12 h-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full shadow-lg flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-red-500 hover:border-red-500 active:scale-90 transition-all">
                     <span class="material-symbols-outlined text-2xl">backspace</span>
                 </button>
             </div>
         </div>
 
-        <div class="w-full px-6 mt-6 mb-2">
-            <div class="relative w-full h-[56px] bg-gray-100 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 flex items-center overflow-hidden">
-                 <div id="input-container" class="absolute inset-0 flex items-center px-2 space-x-1 overflow-x-auto scrollbar-hide whitespace-nowrap">
-                    <span class="text-sm text-gray-400 w-full text-center italic font-medium">Parmağını harflerde gezdir...</span>
+        <div class="w-full px-4 mt-2 mb-2">
+            <div class="relative w-full h-[50px] bg-gray-100 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 flex items-center justify-center overflow-hidden">
+                 <div id="input-container" class="flex items-center justify-center gap-1 w-full px-1">
+                    <span class="text-sm text-gray-400 w-full text-center italic font-medium">Harfleri birleştir...</span>
                  </div>
             </div>
         </div>
@@ -157,7 +160,7 @@
     const GAME_DURATION = 90; 
     const TOTAL_ITEMS = 9; // 8 Harf + 1 Joker
     const RADIUS = 110; 
-    const HIT_RADIUS = 35; // Mobilde parmak hassasiyeti (Pixel cinsinden)
+    const HIT_RADIUS = 35; 
     const VOWELS = "AEIİOÖUÜ";
     const CONSONANTS = "BCÇDFGĞHJKLMNPRSŞTVYZ";
     const FULL_ALPHABET = "ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ";
@@ -286,61 +289,48 @@
         });
     }
 
-    // --- CRITICAL MOBILE DRAG LOGIC ---
     function setupDragEvents() {
-        // Mouse Events
         gameBoard.addEventListener('mousedown', startDrag);
         window.addEventListener('mousemove', onDrag);
         window.addEventListener('mouseup', endDrag);
 
-        // Touch Events (Passive: false is crucial for preventing scroll)
         gameBoard.addEventListener('touchstart', startDrag, {passive: false});
         window.addEventListener('touchmove', onDrag, {passive: false});
         window.addEventListener('touchend', endDrag);
     }
 
     function startDrag(e) {
-        // Prevent default browser behavior (scroll, zoom, selection)
         e.preventDefault(); 
-        
         isDragging = true;
         updateCursor(e);
-        
-        // Immediate hit check on start
         checkHit(cursorPosition.x, cursorPosition.y);
         requestAnimationFrame(drawLoop);
     }
 
     function onDrag(e) {
         if (!isDragging) return;
-        e.preventDefault(); // Stop scroll!
-        
+        e.preventDefault(); 
         updateCursor(e);
         checkHit(cursorPosition.x, cursorPosition.y);
     }
 
     function endDrag(e) {
         isDragging = false;
-        requestAnimationFrame(drawLoop); // Clear cursor line
+        requestAnimationFrame(drawLoop); 
     }
 
-    // Coordinates relative to Game Board
     function updateCursor(e) {
         const rect = gameBoard.getBoundingClientRect();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        
         cursorPosition.x = clientX - rect.left;
         cursorPosition.y = clientY - rect.top;
     }
 
-    // Distance-based Hit Detection (Smoother than ElementFromPoint)
     function checkHit(x, y) {
-        // Find closest item within hit radius
         const hitItem = boardItems.find(item => {
             const dx = x - item.x;
             const dy = y - item.y;
-            // Squared distance check is faster
             return (dx*dx + dy*dy) < (HIT_RADIUS * HIT_RADIUS);
         });
 
@@ -353,7 +343,6 @@
         const lastItem = currentInputSequence[currentInputSequence.length - 1];
         if (lastItem && lastItem.id === item.id) return;
 
-        // Backtracking (Reverse swipe)
         if (currentInputSequence.length >= 2 && currentInputSequence[currentInputSequence.length - 2].id === item.id) {
             currentInputSequence.pop();
             renderCircle();
@@ -374,7 +363,6 @@
         }
     }
 
-    // --- DRAWING ---
     function drawLoop() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (currentInputSequence.length === 0) return;
@@ -403,17 +391,19 @@
 
     function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
 
-    // --- GAME ACTIONS ---
+    // --- RENDER INPUT (FITTING 9 ITEMS) ---
     function renderInput() {
         inputContainerEl.innerHTML = '';
         if (currentInputSequence.length === 0) {
-             inputContainerEl.innerHTML = '<span class="text-sm text-gray-400 w-full text-center italic font-medium">Parmağını harflerde gezdir...</span>';
+             inputContainerEl.innerHTML = '<span class="text-sm text-gray-400 w-full text-center italic font-medium">Harfleri birleştir...</span>';
              return;
         }
 
         currentInputSequence.forEach((item, index) => {
             const box = document.createElement('div');
-            let classes = "flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xl font-bold shadow-sm animate-pop transition-colors border cursor-pointer hover:bg-red-500 hover:text-white hover:border-red-500 ";
+            
+            // BOYUT AYARI: w-8 h-8 (32px). Font: text-lg. 
+            let classes = "w-8 h-8 rounded-lg flex items-center justify-center text-lg font-bold shadow-sm animate-pop transition-colors border cursor-pointer hover:bg-red-500 hover:text-white hover:border-red-500 ";
             
             if (item.type === 'joker') classes += "bg-yellow-100 text-yellow-600 border-yellow-300";
             else classes += "bg-primary text-white border-primary";
@@ -430,7 +420,6 @@
 
             inputContainerEl.appendChild(box);
         });
-        inputContainerEl.scrollLeft = inputContainerEl.scrollWidth;
     }
 
     function removeLastChar() {
@@ -439,7 +428,6 @@
             renderCircle();
             renderInput();
             requestAnimationFrame(drawLoop);
-            // Force redraw hack for cleanup
             setTimeout(() => { ctx.clearRect(0, 0, canvas.width, canvas.height); drawLoop(); }, 10);
         }
     }
@@ -480,7 +468,6 @@
         
         foundWords.slice().reverse().forEach(word => {
             const div = document.createElement('div');
-            // İKON KALDIRILDI, Sadece kelime
             div.className = "px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold rounded-xl border border-gray-200 dark:border-gray-700 text-sm shadow-sm animate-pop uppercase tracking-wide";
             div.innerText = word;
             foundListEl.appendChild(div);
