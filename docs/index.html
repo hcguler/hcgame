@@ -1,15 +1,359 @@
-<!doctype html>
-<html lang="en" data-critters-container>
+<!DOCTYPE html>
+<html lang="tr">
 <head>
-  <meta charset="utf-8">
-  <title>Hcgame</title>
-  <base href="/hcgame/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#1976d2">
-<link rel="stylesheet" href="styles-5INURTSO.css"></head>
-<body>
-  <app-root></app-root>
-<script src="polyfills-FFHMD2TL.js" type="module"></script><script src="main-HWUNLJB5.js" type="module"></script></body>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Kelime Oyunu</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#8B5CF6",
+                        secondary: "#F472B6",
+                        "background-light": "#F3F4F6",
+                        "background-dark": "#1F2937",
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#374151",
+                        "text-light": "#111827",
+                        "text-dark": "#F9FAFB",
+                    },
+                    fontFamily: {
+                        display: ["Nunito", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "12px",
+                        'xl': "16px",
+                        '2xl': "24px",
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.1)',
+                        'inner-soft': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
+                    }
+                },
+            },
+        };
+    </script>
+    <style>
+        body { font-family: 'Nunito', sans-serif; min-height: max(884px, 100dvh); }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Modal Animasyonları */
+        .modal-enter { opacity: 0; transform: scale(0.9); }
+        .modal-enter-active { opacity: 1; transform: scale(1); transition: all 0.2s ease-out; }
+        .modal-exit { opacity: 1; transform: scale(1); }
+        .modal-exit-active { opacity: 0; transform: scale(0.9); transition: all 0.2s ease-in; }
+
+        .btn-disabled {
+            opacity: 0.4;
+            pointer-events: none;
+            filter: grayscale(100%);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center font-display transition-colors duration-300">
+
+<div class="w-full max-w-md h-full min-h-screen sm:h-auto sm:min-h-[800px] bg-white dark:bg-gray-800 sm:rounded-[32px] sm:shadow-2xl overflow-hidden relative flex flex-col">
+    
+    <header class="pt-8 pb-4 px-6 flex flex-col items-center space-y-4 bg-white dark:bg-gray-800 z-10">
+        <h1 class="text-3xl font-extrabold text-gray-800 dark:text-white tracking-tight">Kelime Oyunu</h1>
+        <div class="bg-primary bg-opacity-10 dark:bg-opacity-20 px-6 py-2 rounded-2xl flex items-center space-x-2">
+            <span class="material-icons-round text-primary text-xl">timer</span>
+            <span id="timer" class="text-2xl font-bold text-primary tabular-nums">01:30</span>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto px-6 pb-24 scrollbar-hide">
+        <div class="mt-4 mb-8">
+            <div class="flex justify-between items-start">
+                <div id="letter-grid" class="grid grid-cols-4 gap-3 w-full pr-4">
+                    </div>
+                
+                <button onclick="openJokerModal()" class="aspect-square w-[22%] bg-yellow-100 dark:bg-yellow-900/30 border-2 border-yellow-300 dark:border-yellow-600/50 rounded-xl shadow-sm active:scale-95 transition-transform flex flex-col items-center justify-center text-yellow-600 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-900/50">
+                    <span class="material-icons-round text-3xl">lightbulb</span>
+                    <span class="text-[10px] font-bold mt-1">JOKER</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="relative mb-6">
+            <input id="word-input" readonly class="w-full h-14 pl-5 pr-14 rounded-2xl bg-gray-100 dark:bg-gray-700 border-2 border-transparent focus:border-primary focus:bg-white dark:focus:bg-gray-800 text-lg font-semibold text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all shadow-inner-soft" placeholder="Harf Seçin..." type="text"/>
+            <button onclick="handleBackspace()" class="absolute right-2 top-2 h-10 w-10 flex items-center justify-center rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                <span class="material-icons-round">backspace</span>
+            </button>
+        </div>
+
+        <div class="flex space-x-4 mb-10">
+            <button onclick="clearInput()" class="flex-1 py-3 px-4 rounded-xl font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-95 shadow-sm">
+                Temizle
+            </button>
+            <button onclick="submitWord()" class="flex-[2] py-3 px-4 rounded-xl font-bold text-white bg-primary shadow-lg shadow-purple-500/30 hover:bg-purple-600 active:scale-95 transition-all flex items-center justify-center space-x-2">
+                <span>Kelimeyi Kaydet</span>
+                <span class="material-icons-round text-sm">check_circle</span>
+            </button>
+        </div>
+
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-3xl p-6 border border-gray-100 dark:border-gray-700">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-gray-700 dark:text-gray-200">Bulunan Kelimeler</h2>
+                <span id="word-count-badge" class="bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded-lg">0 Adet</span>
+            </div>
+            <div id="found-words-list" class="flex flex-wrap gap-3">
+                <div class="w-full text-center text-gray-400 text-sm py-4 italic">Henüz kelime bulunamadı...</div>
+            </div>
+        </div>
+    </main>
+
+    <nav class="absolute bottom-0 w-full bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 px-6 py-3 flex justify-between items-center z-20">
+        <button class="flex flex-col items-center space-y-1 text-primary">
+            <span class="material-icons-round text-2xl">grid_view</span>
+            <span class="text-[10px] font-bold">Oyun</span>
+        </button>
+        <button class="flex flex-col items-center space-y-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
+            <span class="material-icons-round text-2xl">leaderboard</span>
+            <span class="text-[10px] font-bold">Skor</span>
+        </button>
+        <button class="flex flex-col items-center space-y-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
+            <span class="material-icons-round text-2xl">settings</span>
+            <span class="text-[10px] font-bold">Ayarlar</span>
+        </button>
+    </nav>
+
+    <div id="joker-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[80vh]">
+            <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white">Joker Harf Seç</h3>
+                <button onclick="closeJokerModal()" class="text-gray-400 hover:text-gray-600"><span class="material-icons-round">close</span></button>
+            </div>
+            <div class="p-4 overflow-y-auto">
+                <div id="alphabet-grid" class="grid grid-cols-6 gap-2">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- Configuration & State ---
+    const GAME_DURATION = 90; // seconds
+    const LETTER_COUNT = 8; // Number of letters in grid
+    const VOWELS = "AEIİOÖUÜ";
+    const CONSONANTS = "BCÇDFGĞHJKLMNPRSŞTVYZ";
+    const FULL_ALPHABET = "ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ";
+    
+    let timerInterval;
+    let timeRemaining = GAME_DURATION;
+    let currentInputSequence = []; // Stores objects {char: 'A', sourceIndex: 2, type: 'grid'|'joker'}
+    let foundWords = [];
+
+    // --- DOM Elements ---
+    const timerEl = document.getElementById('timer');
+    const gridEl = document.getElementById('letter-grid');
+    const inputEl = document.getElementById('word-input');
+    const foundListEl = document.getElementById('found-words-list');
+    const countBadgeEl = document.getElementById('word-count-badge');
+    const modalEl = document.getElementById('joker-modal');
+    const alphabetGridEl = document.getElementById('alphabet-grid');
+
+    // --- Initialization ---
+    function initGame() {
+        populateJokerModal();
+        startRound();
+    }
+
+    function startRound() {
+        // Reset State
+        timeRemaining = GAME_DURATION;
+        currentInputSequence = [];
+        foundWords = [];
+        inputEl.value = "";
+        
+        // Reset UI
+        updateTimerDisplay();
+        renderFoundWords();
+        generateGridLetters();
+        
+        // Clear old timer if exists
+        if (timerInterval) clearInterval(timerInterval);
+        
+        // Start Timer
+        timerInterval = setInterval(() => {
+            timeRemaining--;
+            updateTimerDisplay();
+            
+            if (timeRemaining <= 0) {
+                endRound();
+            }
+        }, 1000);
+    }
+
+    function endRound() {
+        clearInterval(timerInterval);
+        // Simple visual feedback
+        timerEl.classList.add('text-red-500');
+        setTimeout(() => {
+            alert("Süre doldu! Yeni oyun başlıyor.");
+            timerEl.classList.remove('text-red-500');
+            startRound();
+        }, 500);
+    }
+
+    function updateTimerDisplay() {
+        const m = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
+        const s = (timeRemaining % 60).toString().padStart(2, '0');
+        timerEl.innerText = `${m}:${s}`;
+    }
+
+    // --- Grid Generation ---
+    function generateGridLetters() {
+        gridEl.innerHTML = '';
+        // Ensure a mix of vowels and consonants for playability
+        for (let i = 0; i < LETTER_COUNT; i++) {
+            let char;
+            if (i < 3) { // Ensure at least 3 vowels
+                char = VOWELS[Math.floor(Math.random() * VOWELS.length)];
+            } else {
+                char = CONSONANTS[Math.floor(Math.random() * CONSONANTS.length)];
+            }
+            
+            const btn = document.createElement('button');
+            btn.className = `aspect-square bg-white dark:bg-surface-dark border-2 border-gray-200 dark:border-gray-600 rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center text-xl font-bold text-gray-700 dark:text-gray-200 hover:border-primary hover:text-primary dark:hover:border-primary dark:hover:text-primary select-none`;
+            btn.innerText = char;
+            btn.dataset.index = i;
+            btn.dataset.char = char;
+            
+            btn.onclick = () => handleGridClick(i, char, btn);
+            gridEl.appendChild(btn);
+        }
+    }
+
+    // --- Interaction Logic ---
+    function handleGridClick(index, char, btnElement) {
+        if (btnElement.classList.contains('btn-disabled')) return;
+
+        // Add to input sequence
+        currentInputSequence.push({
+            char: char,
+            sourceIndex: index,
+            type: 'grid'
+        });
+
+        // Disable button visually
+        btnElement.classList.add('btn-disabled');
+        btnElement.classList.replace('border-gray-200', 'border-gray-100');
+        
+        updateInputDisplay();
+    }
+
+    function updateInputDisplay() {
+        const text = currentInputSequence.map(item => item.char).join('');
+        inputEl.value = text;
+    }
+
+    function handleBackspace() {
+        if (currentInputSequence.length === 0) return;
+
+        const removedItem = currentInputSequence.pop();
+        
+        // If it was a grid letter, re-enable the button
+        if (removedItem.type === 'grid') {
+            const btn = gridEl.children[removedItem.sourceIndex];
+            if (btn) {
+                btn.classList.remove('btn-disabled');
+                btn.classList.replace('border-gray-100', 'border-gray-200');
+            }
+        }
+        
+        updateInputDisplay();
+    }
+
+    function clearInput() {
+        while(currentInputSequence.length > 0) {
+            handleBackspace(); // Reuse logic to ensure buttons get re-enabled
+        }
+    }
+
+    function submitWord() {
+        const word = inputEl.value;
+        if (!word || word.length < 2) return; // Min length check
+
+        // Add to found words
+        foundWords.push(word);
+        renderFoundWords();
+
+        // IMPORTANT: The prompt says "used letters enabled" when word is saved.
+        // This effectively means we reset the grid state for the next word.
+        // We do NOT call handleBackspace() here because that clears visually one by one.
+        // We just reset the sequence array and re-enable all buttons.
+        
+        currentInputSequence = [];
+        inputEl.value = "";
+        
+        // Re-enable all grid buttons
+        const buttons = gridEl.querySelectorAll('button');
+        buttons.forEach(btn => {
+            btn.classList.remove('btn-disabled');
+            btn.classList.replace('border-gray-100', 'border-gray-200');
+        });
+    }
+
+    function renderFoundWords() {
+        countBadgeEl.innerText = `${foundWords.length} Adet`;
+        
+        if (foundWords.length === 0) {
+            foundListEl.innerHTML = '<div class="w-full text-center text-gray-400 text-sm py-4 italic">Henüz kelime bulunamadı...</div>';
+            return;
+        }
+
+        foundListEl.innerHTML = '';
+        foundWords.slice().reverse().forEach(word => {
+            const tag = document.createElement('div');
+            tag.className = 'px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm animate-fade-in-up uppercase';
+            tag.innerText = word;
+            foundListEl.appendChild(tag);
+        });
+    }
+
+    // --- Joker Logic ---
+    function populateJokerModal() {
+        alphabetGridEl.innerHTML = '';
+        for (let char of FULL_ALPHABET) {
+            const btn = document.createElement('button');
+            btn.className = 'aspect-square bg-gray-50 dark:bg-gray-700 rounded-lg font-bold text-gray-700 dark:text-gray-200 hover:bg-primary hover:text-white transition-colors';
+            btn.innerText = char;
+            btn.onclick = () => selectJoker(char);
+            alphabetGridEl.appendChild(btn);
+        }
+    }
+
+    function openJokerModal() {
+        modalEl.classList.remove('hidden');
+    }
+
+    function closeJokerModal() {
+        modalEl.classList.add('hidden');
+    }
+
+    function selectJoker(char) {
+        // Add to input sequence as type 'joker' (no source index needed)
+        currentInputSequence.push({
+            char: char,
+            sourceIndex: -1,
+            type: 'joker'
+        });
+        updateInputDisplay();
+        closeJokerModal();
+    }
+
+    // Initialize
+    window.onload = initGame;
+
+</script>
+</body>
 </html>
