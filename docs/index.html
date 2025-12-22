@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
-<title>Kelime Oyunu - Swipe</title>
+<title>Kelime Oyunu - Center Joker</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
@@ -25,6 +25,7 @@
                 },
                 boxShadow: {
                     'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.1)',
+                    'glow': '0 0 15px rgba(139, 92, 246, 0.5)',
                 }
             },
         },
@@ -34,108 +35,115 @@
     body { font-family: 'Nunito', sans-serif; user-select: none; -webkit-user-select: none; overscroll-behavior: none; }
     .scrollbar-hide::-webkit-scrollbar { display: none; }
     
-    /* Animasyonlar */
     @keyframes popIn {
         0% { transform: scale(0.5); opacity: 0; }
         100% { transform: scale(1); opacity: 1; }
     }
     .animate-pop { animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 
-    .btn-disabled {
-        opacity: 0.5; /* Daha az silik görünsün ki çizgi üstünde güzel dursun */
-        transform: scale(0.95);
-    }
-    
-    /* Harf butonu seçiliyken */
+    /* Seçili harf efekti */
     .btn-selected {
-        background-color: #8B5CF6 !important; /* Primary color */
+        background-color: #8B5CF6 !important; 
         color: white !important;
         border-color: #7C3AED !important;
-        transform: scale(1.1) !important;
-        box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+        transform: scale(1.15) !important;
+        box-shadow: 0 0 15px rgba(139, 92, 246, 0.6);
+        z-index: 50 !important;
+    }
+
+    /* Joker kullanıldıysa */
+    .joker-used {
+        opacity: 0.5;
+        filter: grayscale(100%);
+        pointer-events: none;
+        transform: scale(0.9);
     }
 </style>
 </head>
-<body class="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center font-display transition-colors duration-300 overflow-hidden fixed w-full h-full">
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex flex-col items-center justify-center font-display transition-colors duration-300 overflow-hidden fixed w-full h-full">
 
-<div class="w-full max-w-md h-full bg-white dark:bg-gray-800 sm:rounded-[32px] sm:shadow-2xl overflow-hidden relative flex flex-col">
-    
-    <header class="pt-6 pb-2 px-6 flex flex-col items-center space-y-2 bg-white dark:bg-gray-800 z-10">
+    <header class="w-full pt-6 pb-2 px-6 flex justify-between items-center bg-transparent z-10 max-w-md">
         <h1 class="text-2xl font-extrabold text-gray-800 dark:text-white tracking-tight">Kelime Avı</h1>
-        <div class="bg-primary bg-opacity-10 dark:bg-opacity-20 px-4 py-1 rounded-xl flex items-center space-x-2">
+        <div class="bg-primary/10 dark:bg-primary/20 px-3 py-1 rounded-xl flex items-center space-x-1">
             <span class="material-symbols-outlined text-primary text-lg">timer</span>
-            <span id="timer" class="text-xl font-bold text-primary tabular-nums">01:30</span>
+            <span id="timer" class="text-lg font-bold text-primary tabular-nums">01:30</span>
         </div>
     </header>
 
-    <main class="flex-1 flex flex-col items-center justify-start relative w-full">
+    <main class="flex-1 flex flex-col items-center justify-start relative w-full max-w-md">
         
-        <div id="input-container" class="mt-4 min-h-[60px] w-full flex flex-wrap justify-center items-center gap-2 px-4 pointer-events-none">
-            <div class="w-12 h-12 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl flex items-center justify-center opacity-50"></div>
+        <div id="input-container" class="mt-2 h-16 w-full flex justify-center items-center gap-1 px-4 pointer-events-none">
+            <div class="w-10 h-10 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex items-center justify-center opacity-50"></div>
         </div>
 
-        <div id="game-board" class="relative w-[320px] h-[320px] mt-4 flex items-center justify-center" style="touch-action: none;">
+        <div id="game-board" class="relative w-[300px] h-[300px] my-2 flex items-center justify-center flex-shrink-0" style="touch-action: none;">
             
-            <canvas id="line-canvas" class="absolute inset-0 z-0 pointer-events-none" width="320" height="320"></canvas>
+            <canvas id="line-canvas" class="absolute inset-0 z-0 pointer-events-none" width="300" height="300"></canvas>
             
-            <div class="absolute w-[240px] h-[240px] bg-gray-50 dark:bg-gray-700/30 border-4 border-gray-100 dark:border-gray-700 rounded-full -z-10"></div>
+            <div class="absolute w-[220px] h-[220px] bg-gray-50 dark:bg-gray-700/30 border-[3px] border-gray-100 dark:border-gray-700 rounded-full -z-10"></div>
             
             <div id="circle-container" class="absolute inset-0 z-10 w-full h-full">
                 </div>
 
-            <div class="absolute bottom-0 right-0 z-20 pointer-events-auto">
-                <button onclick="openJokerModal()" class="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 border-2 border-yellow-300 dark:border-yellow-600/50 rounded-full shadow-lg active:scale-95 transition-transform flex items-center justify-center text-yellow-600 dark:text-yellow-400">
-                    <span class="material-symbols-outlined">lightbulb</span>
-                </button>
+            <div id="joker-btn" data-id="999" class="absolute w-16 h-16 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-yellow-100 dark:bg-yellow-900/40 border-2 border-yellow-300 dark:border-yellow-600 rounded-full shadow-lg flex items-center justify-center z-20 cursor-pointer transition-all duration-200 hover:scale-105 active:scale-95">
+                <span class="material-symbols-outlined text-3xl text-yellow-600 dark:text-yellow-400">star</span>
             </div>
+
             <div class="absolute bottom-0 left-0 z-20 pointer-events-auto">
-                <button onclick="shuffleLetters()" class="w-12 h-12 bg-white dark:bg-surface-dark border-2 border-gray-200 dark:border-gray-600 rounded-full shadow-lg active:scale-95 transition-transform flex items-center justify-center text-gray-600 dark:text-gray-300">
-                    <span class="material-symbols-outlined">shuffle</span>
+                <button onclick="shuffleLetters()" class="w-10 h-10 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-600 rounded-full shadow-sm active:scale-95 transition-transform flex items-center justify-center text-gray-500 hover:text-primary">
+                    <span class="material-symbols-outlined text-xl">shuffle</span>
                 </button>
             </div>
         </div>
 
-        <div class="flex space-x-3 mt-8 w-full px-8 z-20">
-            <button onclick="clearGameInput()" class="flex-1 py-3 rounded-xl font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 active:scale-95">
-                Temizle
-            </button>
-            <button onclick="submitWord()" class="flex-[2] py-3 rounded-xl font-bold text-white bg-primary shadow-lg shadow-purple-500/30 hover:bg-purple-600 active:scale-95 flex items-center justify-center space-x-2">
-                <span>Kaydet</span>
-                <span class="material-symbols-outlined text-sm">check</span>
-            </button>
+        <div class="w-full px-6 mb-2 flex flex-col h-24 sm:h-32">
+            <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Bulunanlar</span>
+                <span id="word-count-badge" class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-md">0</span>
+            </div>
+            <div id="found-words-list" class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700 p-2 flex flex-wrap content-start gap-2 shadow-inner-soft scrollbar-hide">
+                <div class="w-full text-center text-gray-400 text-xs py-2 italic">Henüz kelime yok...</div>
+            </div>
         </div>
 
-        <div class="mt-6 w-full flex-1 overflow-y-auto px-6 pb-20 scrollbar-hide">
-            <div class="flex items-center justify-between mb-2 sticky top-0 bg-white dark:bg-gray-800 py-2 z-10">
-                <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wider">Bulunanlar</h2>
-                <span id="word-count-badge" class="bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded-lg">0</span>
+        <div class="w-full px-6 pb-6 mt-auto">
+            <div class="flex space-x-3">
+                <button onclick="clearGameInput()" class="flex-1 py-3 rounded-2xl font-bold text-gray-600 dark:text-gray-300 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-600 active:scale-95 shadow-sm">
+                    Sil
+                </button>
+                <button onclick="submitWord()" class="flex-[2] py-3 rounded-2xl font-bold text-white bg-primary shadow-lg shadow-purple-500/30 hover:bg-purple-600 active:scale-95 flex items-center justify-center space-x-2 transition-all">
+                    <span>Kaydet</span>
+                    <span class="material-symbols-outlined text-lg">check_circle</span>
+                </button>
             </div>
-            <div id="found-words-list" class="flex flex-wrap gap-2 content-start">
-                </div>
         </div>
     </main>
 
-    <div id="joker-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[60vh]">
-            <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                <h3 class="text-lg font-bold text-gray-800 dark:text-white">Joker Harf</h3>
-                <button onclick="closeJokerModal()" class="text-gray-400"><span class="material-symbols-outlined">close</span></button>
+    <div id="joker-modal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity duration-300">
+        <div class="bg-white dark:bg-gray-800 w-full sm:w-[360px] rounded-t-[32px] sm:rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[70vh] animate-slide-up">
+            <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-700/30">
+                <div class="flex items-center space-x-2">
+                    <span class="material-symbols-outlined text-yellow-500">star</span>
+                    <h3 class="text-lg font-bold text-gray-800 dark:text-white">Harf Seçin</h3>
+                </div>
+                <button onclick="closeJokerModal()" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-500 hover:text-red-500"><span class="material-symbols-outlined text-lg">close</span></button>
             </div>
-            <div class="p-2 overflow-y-auto">
-                <div id="alphabet-grid" class="grid grid-cols-6 gap-2 p-2"></div>
+            <div class="p-4 overflow-y-auto bg-white dark:bg-gray-800">
+                <div id="alphabet-grid" class="grid grid-cols-6 gap-2">
+                    </div>
             </div>
         </div>
     </div>
-</div>
 
 <script>
-    // --- Config ---
+    // --- Configuration ---
     const GAME_DURATION = 90; 
     const LETTER_COUNT = 6;
-    const RADIUS = 110; 
+    const RADIUS = 100; // Radius for 300px board
     const VOWELS = "AEIİOÖUÜ";
     const CONSONANTS = "BCÇDFGĞHJKLMNPRSŞTVYZ";
     const FULL_ALPHABET = "ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ";
+    const CENTER_ID = 999;
     
     // --- State ---
     let timerInterval;
@@ -144,20 +152,21 @@
     let currentInputSequence = []; // {char, id, x, y}
     let foundWords = [];
     let isDragging = false;
-    let cursorPosition = { x: 0, y: 0 };
+    let jokerUsedInThisWord = false; // Joker limit flag
 
-    // --- DOM ---
+    // --- DOM Elements ---
     const timerEl = document.getElementById('timer');
     const circleContainerEl = document.getElementById('circle-container');
     const inputContainerEl = document.getElementById('input-container');
     const foundListEl = document.getElementById('found-words-list');
     const countBadgeEl = document.getElementById('word-count-badge');
     const modalEl = document.getElementById('joker-modal');
+    const jokerBtn = document.getElementById('joker-btn');
     const canvas = document.getElementById('line-canvas');
     const ctx = canvas.getContext('2d');
     const gameBoard = document.getElementById('game-board');
 
-    // --- Init ---
+    // --- Initialization ---
     function initGame() {
         populateJokerModal();
         setupDragEvents();
@@ -165,7 +174,6 @@
         resizeCanvas();
     }
 
-    // Canvas size fix for high DPI
     function resizeCanvas() {
         const rect = gameBoard.getBoundingClientRect();
         canvas.width = rect.width;
@@ -176,14 +184,19 @@
         timeRemaining = GAME_DURATION;
         currentInputSequence = [];
         foundWords = [];
-        clearCanvas();
+        jokerUsedInThisWord = false;
         
+        clearCanvas();
         generateRandomLetters();
         renderCircle();
         renderInput();
         renderFoundWords();
         updateTimerDisplay();
         
+        // Reset Joker Visual
+        jokerBtn.classList.remove('joker-used');
+        jokerBtn.querySelector('span').innerText = 'star';
+
         if (timerInterval) clearInterval(timerInterval);
         timerInterval = setInterval(() => {
             timeRemaining--;
@@ -194,18 +207,18 @@
 
     function endRound() {
         clearInterval(timerInterval);
-        alert("Süre doldu! Yeni oyun başlıyor.");
+        alert("Süre doldu! Yeni tur başlıyor.");
         startRound();
     }
 
-    // --- Logic ---
+    // --- Game Logic ---
     function generateRandomLetters() {
         currentLetters = [];
         for (let i = 0; i < LETTER_COUNT; i++) {
             let char;
             if (i < 2) char = VOWELS[Math.floor(Math.random() * VOWELS.length)];
             else char = CONSONANTS[Math.floor(Math.random() * CONSONANTS.length)];
-            currentLetters.push({ char: char, id: i, state: 'active' });
+            currentLetters.push({ char: char, id: i });
         }
         currentLetters.sort(() => Math.random() - 0.5);
     }
@@ -221,140 +234,168 @@
             const angleDeg = (index * angleStep) - 90; 
             const angleRad = angleDeg * (Math.PI / 180);
             
-            // Calculate precise center position relative to board
             const x = centerX + RADIUS * Math.cos(angleRad);
             const y = centerY + RADIUS * Math.sin(angleRad);
             
-            // Store coordinates for drag detection
             item.x = x;
             item.y = y;
 
             const btn = document.createElement('div');
-            // Using div instead of button to prevent default clicks interfering with drag
-            let className = "absolute w-16 h-16 rounded-full shadow-md flex items-center justify-center text-2xl font-extrabold z-10 select-none cursor-pointer transition-transform duration-200 ";
+            let className = "absolute w-14 h-14 rounded-full shadow-md flex items-center justify-center text-xl font-bold z-10 select-none transition-all duration-200 ";
             
-            // Check if selected
+            // Check selection
             const isSelected = currentInputSequence.some(s => s.id === item.id);
-            if (isSelected) {
-                className += "btn-selected ";
-            } else {
-                className += "bg-white dark:bg-surface-dark border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 ";
-            }
+            if (isSelected) className += "btn-selected ";
+            else className += "bg-white dark:bg-surface-dark border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 ";
 
             btn.className = className;
             btn.innerText = item.char;
             btn.id = `letter-${item.id}`;
+            btn.style.left = `${x - 28}px`; // 28 = w/2
+            btn.style.top = `${y - 28}px`;
             
-            // Position (Centering the 64x64 div)
-            btn.style.left = `${x - 32}px`;
-            btn.style.top = `${y - 32}px`;
-            
-            // Add attributes for hit testing
             btn.dataset.id = item.id;
-            btn.dataset.char = item.char;
 
             circleContainerEl.appendChild(btn);
         });
     }
 
-    // --- DRAG & LINE DRAWING LOGIC ---
+    // --- Drag & Hit Testing ---
 
     function setupDragEvents() {
-        // Mouse
         gameBoard.addEventListener('mousedown', startDrag);
         window.addEventListener('mousemove', onDrag);
         window.addEventListener('mouseup', endDrag);
 
-        // Touch
         gameBoard.addEventListener('touchstart', startDrag, {passive: false});
         window.addEventListener('touchmove', onDrag, {passive: false});
         window.addEventListener('touchend', endDrag);
+        
+        // Click on joker directly
+        jokerBtn.addEventListener('click', (e) => {
+             e.stopPropagation(); // prevent drag start logic conflict
+             handleJokerHit();
+        });
     }
 
     function startDrag(e) {
-        // Only start if touching a letter
-        const target = getTargetFromEvent(e);
-        if (target) {
-            e.preventDefault();
-            isDragging = true;
-            
-            // If starting a new drag on a non-selected letter, allow adding
-            // Note: If we want to allow "Add to existing selection", remove the clear logic.
-            // But usually dragging starts a new word. 
-            // The user said "Don't reset without saving". 
-            // Let's assume starting a NEW drag on a letter ADDS to sequence if meaningful, 
-            // or starts fresh if the previous sequence was "done".
-            // Implementation: If I touch a letter that IS NOT last selected, and sequence is not empty, 
-            // maybe I just append? 
-            // Let's stick to: Touching a letter adds it if not present.
-            
-            // If the sequence is empty, or we want to start fresh on new click/tap:
-            // Let's decide: Clicking 'Clear' is the only way to reset? 
-            // Or should tapping a letter that isn't connected reset?
-            // User: "kelimeyi kaydet demeden durumu sıfırlamasın" implies persistence.
-            
-            tryAddLetter(target);
-            updateCursor(e);
-            requestAnimationFrame(drawLoop);
-        }
+        isDragging = true;
+        const targetData = getTargetData(e);
+        if (targetData) handleHit(targetData);
+        requestAnimationFrame(drawLoop);
     }
 
     function onDrag(e) {
         if (!isDragging) return;
-        e.preventDefault(); 
-        updateCursor(e);
+        e.preventDefault(); // Stop scrolling
         
-        const target = getTargetFromEvent(e);
-        if (target) {
-            tryAddLetter(target);
-        }
+        const targetData = getTargetData(e);
+        if (targetData) handleHit(targetData);
     }
 
-    function endDrag(e) {
+    function endDrag() {
         isDragging = false;
-        // Do NOT clear input. Keep lines drawn.
-        // We need to keep the drawLoop running once to remove the cursor line, 
-        // but keep the connection lines.
-        requestAnimationFrame(drawLoop);
+        requestAnimationFrame(drawLoop); // Clean up cursor line
     }
 
-    function getTargetFromEvent(e) {
+    function getTargetData(e) {
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         
-        // Use elementFromPoint to find the letter div
+        // 1. Check Center Joker first (circular hit detection)
+        const boardRect = gameBoard.getBoundingClientRect();
+        const centerX = boardRect.left + boardRect.width/2;
+        const centerY = boardRect.top + boardRect.height/2;
+        const distToCenter = Math.hypot(clientX - centerX, clientY - centerY);
+        
+        // 30px radius for hit area
+        if (distToCenter < 30) {
+            return { type: 'joker' };
+        }
+
+        // 2. Check Outer Letters
         const el = document.elementFromPoint(clientX, clientY);
         if (el && el.id.startsWith('letter-')) {
-            return currentLetters.find(l => l.id == el.dataset.id);
+            const id = parseInt(el.dataset.id);
+            return currentLetters.find(l => l.id === id);
         }
         return null;
     }
 
-    function tryAddLetter(letterObj) {
-        // Check if already in sequence
-        const index = currentInputSequence.findIndex(s => s.id === letterObj.id);
+    function handleHit(data) {
+        // Joker Logic
+        if (data.type === 'joker') {
+            handleJokerHit();
+            return;
+        }
+
+        // Letter Logic
+        const index = currentInputSequence.findIndex(s => s.id === data.id);
         
+        // Add new
         if (index === -1) {
-            // New letter: Add it
-            currentInputSequence.push(letterObj);
-            renderCircle(); // Update styling (selected state)
+            // Prevent jumping across the board without connection (optional, but good for UX)
+            // Here we allow it for responsiveness, or check distance logic.
+            // Simple logic: Just add it.
+            currentInputSequence.push(data);
+            playSound('tap');
+            renderCircle();
             renderInput();
-        } else if (index === currentInputSequence.length - 2) {
-            // Backtracking: User moved back to previous letter -> remove last one
+        } 
+        // Backtrack (Remove last if we move back to it)
+        else if (index === currentInputSequence.length - 2) {
             currentInputSequence.pop();
             renderCircle();
             renderInput();
         }
     }
 
-    function updateCursor(e) {
-        const rect = gameBoard.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    function handleJokerHit() {
+        if (jokerUsedInThisWord) return; // Already used
+        if (modalEl.classList.contains('hidden') === false) return; // Already open
+
+        // Pause drag interaction
+        isDragging = false;
         
-        cursorPosition.x = clientX - rect.left;
-        cursorPosition.y = clientY - rect.top;
+        // Open Modal
+        openJokerModal();
     }
+
+    function selectJokerLetter(char) {
+        // Center Coordinates for line drawing
+        const boardRect = gameBoard.getBoundingClientRect();
+        const centerObj = {
+            char: char,
+            id: CENTER_ID, // Special ID
+            x: boardRect.width / 2,
+            y: boardRect.height / 2
+        };
+
+        currentInputSequence.push(centerObj);
+        jokerUsedInThisWord = true;
+        
+        // Update Joker Visual
+        jokerBtn.classList.add('joker-used');
+        jokerBtn.querySelector('span').innerText = char; // Show selected letter in center
+
+        closeJokerModal();
+        renderInput();
+        renderCircle(); // Redraw to maybe lock things?
+        playSound('bonus');
+    }
+
+    // --- Drawing ---
+    let cursorX = 0, cursorY = 0;
+    window.addEventListener('mousemove', e => {
+        const r = gameBoard.getBoundingClientRect();
+        cursorX = e.clientX - r.left;
+        cursorY = e.clientY - r.top;
+    });
+    window.addEventListener('touchmove', e => {
+        const r = gameBoard.getBoundingClientRect();
+        cursorX = e.touches[0].clientX - r.left;
+        cursorY = e.touches[0].clientY - r.top;
+    });
 
     function drawLoop() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -364,36 +405,30 @@
         ctx.beginPath();
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.lineWidth = 10;
-        ctx.strokeStyle = '#8B5CF6'; // Purple-500
-        ctx.globalAlpha = 0.6;
+        ctx.lineWidth = 8;
+        ctx.strokeStyle = '#8B5CF6'; 
+        ctx.globalAlpha = 0.5;
 
-        // Draw connections between selected letters
-        if (currentInputSequence.length > 0) {
-            const first = currentInputSequence[0];
-            ctx.moveTo(first.x, first.y);
-            
-            for (let i = 1; i < currentInputSequence.length; i++) {
-                const p = currentInputSequence[i];
-                ctx.lineTo(p.x, p.y);
-            }
+        // Start from first letter
+        const first = currentInputSequence[0];
+        ctx.moveTo(first.x, first.y);
+        
+        // Connect points
+        for (let i = 1; i < currentInputSequence.length; i++) {
+            const p = currentInputSequence[i];
+            ctx.lineTo(p.x, p.y);
         }
 
-        // Draw line to cursor if dragging
+        // Draw to cursor if dragging
         if (isDragging) {
-            ctx.lineTo(cursorPosition.x, cursorPosition.y);
+            const last = currentInputSequence[currentInputSequence.length - 1];
+            // Don't draw line from center if we just picked joker and aren't dragging yet
+            ctx.lineTo(cursorX, cursorY);
         }
 
         ctx.stroke();
-        
-        if (isDragging) {
-            requestAnimationFrame(drawLoop);
-        }
-    }
-    
-    // Clear lines (helper)
-    function clearCanvas() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (isDragging) requestAnimationFrame(drawLoop);
     }
 
     // --- Inputs & Actions ---
@@ -402,20 +437,22 @@
         inputContainerEl.innerHTML = '';
         currentInputSequence.forEach(item => {
             const box = document.createElement('div');
-            box.className = `w-12 h-12 bg-primary text-white rounded-xl flex items-center justify-center text-2xl font-bold shadow-lg shadow-purple-500/30 animate-pop border-2 border-transparent`;
+            const isJoker = item.id === CENTER_ID;
+            box.className = `w-10 h-10 ${isJoker ? 'bg-yellow-400 border-yellow-500' : 'bg-primary border-transparent'} text-white rounded-lg flex items-center justify-center text-xl font-bold shadow-sm animate-pop border-2`;
             box.innerText = item.char;
             inputContainerEl.appendChild(box);
         });
-        
-        // Placeholder
-        const ph = document.createElement('div');
-        ph.className = "w-12 h-12 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl flex items-center justify-center opacity-30";
-        inputContainerEl.appendChild(ph);
     }
 
     function clearGameInput() {
         currentInputSequence = [];
-        renderCircle(); // Resets styles
+        jokerUsedInThisWord = false;
+        
+        // Reset Joker Visual
+        jokerBtn.classList.remove('joker-used');
+        jokerBtn.querySelector('span').innerText = 'star';
+
+        renderCircle();
         renderInput();
         clearCanvas();
     }
@@ -424,15 +461,14 @@
         if (currentInputSequence.length < 2) return;
 
         const word = currentInputSequence.map(i => i.char).join('');
-        foundWords.push(word);
         
-        // Clear logic:
-        // User wants to add "fast consecutively". 
-        // Resetting the input allows starting the next word immediately.
-        // The prompt says "don't reset WITHOUT saying save". 
-        // So when we DO say save, we SHOULD reset the input to allow the next word.
+        if (!foundWords.includes(word)) {
+            foundWords.push(word);
+            playSound('success');
+        }
+        
+        // Reset for next word immediately (allows rapid play)
         clearGameInput(); 
-        
         renderFoundWords();
     }
 
@@ -445,7 +481,7 @@
         foundListEl.innerHTML = '';
         foundWords.slice().reverse().forEach(word => {
             const div = document.createElement('div');
-            div.className = "px-3 py-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg border border-gray-200 dark:border-gray-600 text-sm animate-pop uppercase";
+            div.className = "px-3 py-1 bg-white dark:bg-surface-dark text-gray-700 dark:text-gray-200 font-bold rounded-lg border border-gray-200 dark:border-gray-600 text-xs shadow-sm animate-pop uppercase";
             div.innerText = word;
             foundListEl.appendChild(div);
         });
@@ -457,30 +493,31 @@
         timerEl.innerText = `${m}:${s}`;
     }
 
-    // --- Joker ---
+    // --- Joker Modal ---
     function populateJokerModal() {
         const grid = document.getElementById('alphabet-grid');
         grid.innerHTML = '';
         for (let char of FULL_ALPHABET) {
             const btn = document.createElement('button');
-            btn.className = 'aspect-square bg-gray-100 dark:bg-gray-700 rounded-lg font-bold text-gray-700 dark:text-gray-200 hover:bg-primary hover:text-white transition-colors';
+            btn.className = 'aspect-square bg-gray-100 dark:bg-gray-700 rounded-lg font-bold text-gray-700 dark:text-gray-200 hover:bg-yellow-400 hover:text-white transition-colors';
             btn.innerText = char;
-            btn.onclick = () => {
-                // Add joker as a virtual node with no position (won't draw line)
-                currentInputSequence.push({ char: char, id: 'joker-' + Date.now(), x: -100, y: -100 });
-                renderInput();
-                closeJokerModal();
-            };
+            btn.onclick = () => selectJokerLetter(char);
             grid.appendChild(btn);
         }
     }
     function openJokerModal() { modalEl.classList.remove('hidden'); }
     function closeJokerModal() { modalEl.classList.add('hidden'); }
+    
     function shuffleLetters() { 
         if(currentInputSequence.length === 0) {
             currentLetters.sort(() => Math.random() - 0.5);
             renderCircle();
         }
+    }
+
+    // Dummy sound function
+    function playSound(type) {
+        // Implement audio here
     }
 
     window.onload = initGame;
