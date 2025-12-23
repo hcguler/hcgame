@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
-<title>Kelime Oyunu - Klavye Tasarım</title>
+<title>Kelime Oyunu - Klavye Tasarım V5</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
@@ -107,8 +107,8 @@
 
     /* Joker Key */
     .key-joker {
-        width: 64px;
-        height: 64px;
+        width: 80px;
+        height: 72px;
         background: linear-gradient(180deg, #fef3c7 0%, #fde68a 100%);
         border-color: #fbbf24;
         box-shadow: 
@@ -135,43 +135,48 @@
 
     /* Action Keys */
     .key-action {
-        width: 56px;
-        height: 56px;
-        font-size: 1.25rem;
-        border-radius: 14px;
-    }
-
-    .key-action.shuffle {
-        background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%);
-        border-color: #86efac;
-        box-shadow: 0 3px 0 #22c55e, 0 4px 8px rgba(34,197,94,0.15);
-        color: #16a34a;
-    }
-    .key-action.shuffle:active {
-        box-shadow: 0 0px 0 #22c55e;
-        transform: translateY(3px);
+        width: 72px;
+        height: 72px;
+        font-size: 1.5rem;
+        border-radius: 16px;
     }
 
     .key-action.delete {
         background: linear-gradient(180deg, #fef2f2 0%, #fee2e2 100%);
         border-color: #fca5a5;
-        box-shadow: 0 3px 0 #ef4444, 0 4px 8px rgba(239,68,68,0.15);
+        box-shadow: 
+            0 4px 0 #ef4444, 
+            0 6px 10px rgba(239,68,68,0.15);
         color: #dc2626;
+    }
+    .key-action.delete:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 6px 0 #ef4444,
+            0 8px 15px rgba(239,68,68,0.25);
     }
     .key-action.delete:active {
         box-shadow: 0 0px 0 #ef4444;
-        transform: translateY(3px);
+        transform: translateY(4px);
     }
 
     .key-action.backspace {
         background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
         border-color: #fdba74;
-        box-shadow: 0 3px 0 #f97316, 0 4px 8px rgba(249,115,22,0.15);
+        box-shadow: 
+            0 4px 0 #f97316, 
+            0 6px 10px rgba(249,115,22,0.15);
         color: #ea580c;
+    }
+    .key-action.backspace:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 6px 0 #f97316,
+            0 8px 15px rgba(249,115,22,0.25);
     }
     .key-action.backspace:active {
         box-shadow: 0 0px 0 #f97316;
-        transform: translateY(3px);
+        transform: translateY(4px);
     }
 
     /* Keyboard Container */
@@ -185,6 +190,7 @@
     .keyboard-row {
         display: flex;
         gap: 10px;
+        justify-content: center;
     }
 
     /* Input Letter Box */
@@ -207,7 +213,7 @@
             <h1 class="text-xl font-black text-gray-800 leading-none tracking-tight">
                 KELIME<span class="text-primary">USTASI</span>
             </h1>
-            <span class="text-[10px] text-sky-500 font-semibold">V4 - Klavye Tasarım</span>
+            <span class="text-[10px] text-sky-500 font-semibold">V5 - Klavye Tasarım</span>
         </div>
         <div class="flex items-center gap-2">
             <div class="bg-sky-50 px-3 py-1.5 rounded-xl flex items-center space-x-1 border border-sky-200">
@@ -218,54 +224,35 @@
     </header>
 
     <!-- Game Area -->
-    <div class="flex-shrink-0 flex flex-col items-center justify-start pt-4 w-full relative z-20 bg-transparent">
+    <div class="flex-shrink-0 flex flex-col items-center justify-start pt-6 w-full relative z-20 bg-transparent">
         
-        <!-- Top Bar: Actions + Joker -->
-        <div class="w-full px-5 flex justify-between items-center mb-4">
-            <!-- Left Actions -->
-            <div class="flex gap-2">
-                <button onclick="shuffleLetters()" class="key key-action shuffle" title="Karıştır">
-                    <span class="material-symbols-outlined">shuffle</span>
-                </button>
-                <button onclick="clearGameInput()" class="key key-action delete" title="Temizle">
-                    <span class="material-symbols-outlined">delete</span>
-                </button>
-            </div>
-            
-            <!-- Joker -->
-            <div class="flex items-center gap-3">
-                <span class="text-xs text-gray-400 font-bold uppercase tracking-wider">Joker</span>
-                <button id="joker-btn" onclick="handleJokerClick()" class="key key-joker animate-bounce-subtle" title="Joker">
-                    <span class="material-symbols-outlined text-2xl">star</span>
-                </button>
-            </div>
-            
-            <!-- Right Actions -->
-            <div class="flex gap-2">
-                <button onclick="removeLastChar()" class="key key-action backspace" title="Geri Sil">
-                    <span class="material-symbols-outlined">backspace</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Keyboard Layout: 8 Letters (3-3-2) -->
-        <div class="keyboard mb-4">
-            <!-- Row 1: 3 letters -->
+        <!-- Keyboard Layout: 8 Letters (4-4) + Bottom Row (Delete-Joker-Backspace) -->
+        <div class="keyboard mb-5">
+            <!-- Row 1: 4 letters -->
             <div class="keyboard-row">
                 <button id="key-0" onclick="handleLetterClick(0)" class="key">A</button>
                 <button id="key-1" onclick="handleLetterClick(1)" class="key">B</button>
                 <button id="key-2" onclick="handleLetterClick(2)" class="key">C</button>
-            </div>
-            <!-- Row 2: 3 letters -->
-            <div class="keyboard-row">
                 <button id="key-3" onclick="handleLetterClick(3)" class="key">D</button>
+            </div>
+            <!-- Row 2: 4 letters -->
+            <div class="keyboard-row">
                 <button id="key-4" onclick="handleLetterClick(4)" class="key">E</button>
                 <button id="key-5" onclick="handleLetterClick(5)" class="key">F</button>
-            </div>
-            <!-- Row 3: 2 letters (centered) -->
-            <div class="keyboard-row">
                 <button id="key-6" onclick="handleLetterClick(6)" class="key">G</button>
                 <button id="key-7" onclick="handleLetterClick(7)" class="key">H</button>
+            </div>
+            <!-- Row 3: Delete - Joker - Backspace -->
+            <div class="keyboard-row mt-2">
+                <button onclick="clearGameInput()" class="key key-action delete" title="Tümünü Temizle">
+                    <span class="material-symbols-outlined text-2xl">delete</span>
+                </button>
+                <button id="joker-btn" onclick="handleJokerClick()" class="key key-joker animate-bounce-subtle" title="Joker">
+                    <span class="material-symbols-outlined text-2xl">star</span>
+                </button>
+                <button onclick="removeLastChar()" class="key key-action backspace" title="Son Harfi Sil">
+                    <span class="material-symbols-outlined text-2xl">backspace</span>
+                </button>
             </div>
         </div>
 
@@ -426,7 +413,7 @@
         if (jokerState.used) {
             jokerBtnEl.classList.add('selected');
             jokerBtnEl.classList.remove('animate-bounce-subtle');
-            jokerBtnEl.innerHTML = `<span class="text-xl font-bold">${jokerState.char}</span>`;
+            jokerBtnEl.innerHTML = `<span class="text-2xl font-bold">${jokerState.char}</span>`;
         } else {
             jokerBtnEl.classList.remove('selected');
             jokerBtnEl.classList.add('animate-bounce-subtle');
@@ -581,12 +568,6 @@
             timerEl.classList.remove('text-red-500');
             timerEl.classList.add('text-primary');
         }
-    }
-
-    function shuffleLetters() {
-        if (currentInputSequence.length > 0) return;
-        letters.sort(() => Math.random() - 0.5);
-        renderKeyboard();
     }
 
     // === MODAL ===
