@@ -231,13 +231,7 @@
                     <span class="material-symbols-outlined">delete</span>
                 </button>
             </div>
-            
-            <!-- Joker -->
-            <div class="flex items-center gap-3">
-                <span class="text-xs text-gray-400 font-bold uppercase tracking-wider">Joker</span>
-                <button id="joker-btn" onclick="handleJokerClick()" class="key key-joker animate-bounce-subtle" title="Joker">
-                    <span class="material-symbols-outlined text-2xl">star</span>
-                </button>
+               
             </div>
             
             <!-- Right Actions -->
@@ -250,22 +244,25 @@
 
         <!-- Keyboard Layout: 8 Letters (3-3-2) -->
         <div class="keyboard mb-4">
-            <!-- Row 1: 3 letters -->
+            <!-- Row 1: 4 letters -->
             <div class="keyboard-row">
                 <button id="key-0" onclick="handleLetterClick(0)" class="key">A</button>
                 <button id="key-1" onclick="handleLetterClick(1)" class="key">B</button>
                 <button id="key-2" onclick="handleLetterClick(2)" class="key">C</button>
-            </div>
-            <!-- Row 2: 3 letters -->
-            <div class="keyboard-row">
                 <button id="key-3" onclick="handleLetterClick(3)" class="key">D</button>
+            </div>
+            <!-- Row 2: 4 letters -->
+            <div class="keyboard-row">
                 <button id="key-4" onclick="handleLetterClick(4)" class="key">E</button>
                 <button id="key-5" onclick="handleLetterClick(5)" class="key">F</button>
+                <button id="key-6" onclick="handleLetterClick(6)" class="key">G</button>
+                <button id="key-7" onclick="handleLetterClick(7)" class="key">H</button>
             </div>
             <!-- Row 3: 2 letters (centered) -->
             <div class="keyboard-row">
-                <button id="key-6" onclick="handleLetterClick(6)" class="key">G</button>
-                <button id="key-7" onclick="handleLetterClick(7)" class="key">H</button>
+                 <button id="joker-btn" onclick="handleJokerClick()" class="key key-joker animate-bounce-subtle" title="Joker">
+                    <span class="material-symbols-outlined text-2xl">star</span>
+                </button>
             </div>
         </div>
 
