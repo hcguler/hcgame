@@ -29,13 +29,11 @@
     };
 </script>
 <style>
-    /* Kritik: Sayfa kaydırmayı ve seçimleri engelle */
     body { 
         font-family: 'Nunito', sans-serif; 
         user-select: none; 
         -webkit-user-select: none; 
         overscroll-behavior: none; 
-        touch-action: none; 
     }
     .scrollbar-hide::-webkit-scrollbar { display: none; }
     
@@ -45,30 +43,55 @@
     }
     .animate-pop { animation: popIn 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 
-    /* Node Stilleri */
-    .btn-selected {
-        background-color: #7C3AED !important;
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-4px); }
+        75% { transform: translateX(4px); }
+    }
+    .animate-shake { animation: shake 0.3s ease-in-out; }
+
+    .letter-btn {
+        transition: all 0.15s ease;
+    }
+    .letter-btn:active {
+        transform: scale(0.92);
+    }
+    .letter-btn.selected {
+        background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%) !important;
         color: white !important;
-        border-color: #6D28D9 !important;
-        transform: scale(1.15) !important;
-        box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
-        z-index: 50;
+        border-color: #5B21B6 !important;
+        box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+        transform: scale(1.05);
+    }
+    .letter-btn.disabled {
+        opacity: 0.4;
+        pointer-events: none;
     }
 
-    .joker-node {
-        background-color: #FEF3C7 !important; 
-        border-color: #F59E0B !important;
-        color: #D97706 !important;
+    .joker-btn {
+        background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+        border-color: #F59E0B;
+        color: #D97706;
     }
-    .dark .joker-node {
-        background-color: rgba(180, 83, 9, 0.2) !important;
-        border-color: rgba(245, 158, 11, 0.5) !important;
-        color: #FBBF24 !important;
-    }
-    .joker-selected {
-        background-color: #F59E0B !important;
+    .joker-btn.selected {
+        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important;
         color: white !important;
-        box-shadow: 0 0 20px rgba(245, 158, 11, 0.6);
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.5);
+    }
+    .dark .joker-btn {
+        background: linear-gradient(135deg, rgba(180, 83, 9, 0.3) 0%, rgba(146, 64, 14, 0.3) 100%);
+        border-color: rgba(245, 158, 11, 0.5);
+        color: #FBBF24;
+    }
+
+    .corner-btn {
+        transition: all 0.2s ease;
+    }
+    .corner-btn:hover {
+        transform: scale(1.1);
+    }
+    .corner-btn:active {
+        transform: scale(0.95);
     }
 </style>
 </head>
@@ -88,58 +111,79 @@
 
     <div class="flex-shrink-0 flex flex-col items-center justify-start pt-6 w-full relative z-20 bg-white dark:bg-gray-900">
         
-        <div id="game-board" class="relative w-[320px] h-[320px] flex items-center justify-center touch-none select-none mb-2">
-            <canvas id="line-canvas" class="absolute inset-0 z-0 pointer-events-none" width="320" height="320"></canvas>
+        <!-- Game Board Area -->
+        <div id="game-board" class="relative w-[300px] h-[220px] flex items-center justify-center mb-4">
             
-            <div class="absolute w-[260px] h-[260px] bg-gray-50 dark:bg-gray-800/40 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-full -z-10"></div>
+            <!-- Yuvarlak Arka Plan -->
+            <div class="absolute w-[260px] h-[200px] bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/60 dark:to-gray-800/40 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-[60px] -z-10"></div>
             
-            <div id="circle-container" class="absolute inset-0 z-10 w-full h-full"></div>
-
-            <div class="absolute bottom-0 left-2 z-20 pointer-events-auto">
-                <button onclick="shuffleLetters()" class="w-12 h-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full shadow-lg flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-primary hover:border-primary active:scale-90 transition-all">
-                    <span class="material-symbols-outlined text-2xl">shuffle</span>
+            <!-- Sol Üst: Temizle -->
+            <div class="absolute top-0 left-0 z-20">
+                <button onclick="clearGameInput()" class="corner-btn w-11 h-11 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-full shadow-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-red-500 hover:border-red-400 dark:hover:text-red-400 dark:hover:border-red-500">
+                    <span class="material-symbols-outlined text-xl">delete_sweep</span>
                 </button>
             </div>
             
-            <div class="absolute bottom-0 right-2 z-20 pointer-events-auto">
-                <button onclick="removeLastChar()" class="w-12 h-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full shadow-lg flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-red-500 hover:border-red-500 active:scale-90 transition-all">
-                    <span class="material-symbols-outlined text-2xl">backspace</span>
+            <!-- Sağ Üst: Joker -->
+            <div class="absolute top-0 right-0 z-20">
+                <button id="joker-btn" onclick="handleJokerClick()" class="corner-btn joker-btn w-11 h-11 border-2 rounded-full shadow-lg flex items-center justify-center font-bold text-lg">
+                    <span class="material-symbols-outlined text-xl">lightbulb</span>
                 </button>
+            </div>
+            
+            <!-- Sol Alt: Shuffle -->
+            <div class="absolute bottom-0 left-0 z-20">
+                <button onclick="shuffleLetters()" class="corner-btn w-11 h-11 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-full shadow-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-primary hover:border-primary">
+                    <span class="material-symbols-outlined text-xl">shuffle</span>
+                </button>
+            </div>
+            
+            <!-- Sağ Alt: Backspace -->
+            <div class="absolute bottom-0 right-0 z-20">
+                <button onclick="removeLastChar()" class="corner-btn w-11 h-11 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-full shadow-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-orange-500 hover:border-orange-400">
+                    <span class="material-symbols-outlined text-xl">backspace</span>
+                </button>
+            </div>
+            
+            <!-- 8 Harf Grid (4x2) -->
+            <div id="letters-grid" class="grid grid-cols-4 gap-3 z-10">
+                <!-- Harfler buraya render edilecek -->
             </div>
         </div>
 
+        <!-- Input Alanı -->
         <div class="w-full px-4 mt-2 mb-2">
-            <div class="relative w-full h-[50px] bg-gray-100 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 flex items-center justify-center overflow-hidden">
-                 <div id="input-container" class="flex items-center justify-center gap-1 w-full px-1">
-                    <span class="text-sm text-gray-400 w-full text-center italic font-medium">Harfleri birleştir...</span>
+            <div class="relative w-full min-h-[50px] bg-gray-100 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 flex items-center justify-center overflow-hidden py-2 px-2">
+                 <div id="input-container" class="flex items-center justify-center gap-1 flex-wrap">
+                    <span class="text-sm text-gray-400 w-full text-center italic font-medium">Harfleri seç...</span>
                  </div>
             </div>
         </div>
 
-        <div class="flex space-x-3 w-full px-6 mb-4">
-            <button onclick="clearGameInput()" class="flex-[1] py-3.5 rounded-2xl font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 active:scale-95 transition-all text-sm">
-                TEMİZLE
-            </button>
-            <button onclick="submitWord()" class="flex-[2] py-3.5 rounded-2xl font-bold text-white bg-primary shadow-lg shadow-purple-500/30 hover:bg-purple-600 active:scale-95 flex items-center justify-center space-x-2 transition-all">
+        <!-- Kaydet Butonu -->
+        <div class="flex w-full px-6 mb-4">
+            <button onclick="submitWord()" class="w-full py-3.5 rounded-2xl font-bold text-white bg-primary shadow-lg shadow-purple-500/30 hover:bg-purple-600 active:scale-95 flex items-center justify-center space-x-2 transition-all">
                 <span>KAYDET</span>
                 <span class="material-symbols-outlined">check_circle</span>
             </button>
         </div>
     </div>
 
+    <!-- Bulunan Kelimeler -->
     <div class="flex-1 w-full bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)]">
         <div class="px-6 py-3 flex items-center justify-between sticky top-0 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur z-10">
             <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Bulunanlar</h2>
             <span id="word-count-badge" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-xs font-bold px-2.5 py-0.5 rounded-md">0</span>
         </div>
-        <div id="found-words-list" class="flex-1 overflow-y-auto px-6 content-start flex flex-wrap gap-2 pb-20">
+        <div id="found-words-list" class="flex-1 overflow-y-auto px-6 content-start flex flex-wrap gap-2 pb-20 scrollbar-hide">
             <div class="w-full text-center mt-6">
                 <span class="material-symbols-outlined text-4xl text-gray-200 dark:text-gray-700">history_edu</span>
             </div>
         </div>
     </div>
 
-    <div id="joker-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-fade-in" style="touch-action: none;">
+    <!-- Joker Modal -->
+    <div id="joker-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
         <div class="bg-white dark:bg-gray-800 rounded-[2rem] shadow-2xl w-full max-w-[320px] overflow-hidden flex flex-col border border-gray-100 dark:border-gray-700">
             <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800">
                 <div>
@@ -158,9 +202,7 @@
 <script>
     // --- Configuration ---
     const GAME_DURATION = 90; 
-    const TOTAL_ITEMS = 9; // 8 Harf + 1 Joker
-    const RADIUS = 110; 
-    const HIT_RADIUS = 35; 
+    const TOTAL_LETTERS = 8;
     const VOWELS = "AEIİOÖUÜ";
     const CONSONANTS = "BCÇDFGĞHJKLMNPRSŞTVYZ";
     const FULL_ALPHABET = "ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ";
@@ -168,45 +210,34 @@
     // --- State ---
     let timerInterval;
     let timeRemaining = GAME_DURATION;
-    let boardItems = []; 
+    let letterItems = []; // 8 harf
+    let jokerState = { used: false, char: null }; // Joker durumu
     let currentInputSequence = []; 
     let foundWords = [];
-    let isDragging = false;
-    let cursorPosition = { x: 0, y: 0 };
-    let jokerPendingNode = null; 
 
     // --- DOM ---
     const timerEl = document.getElementById('timer');
-    const circleContainerEl = document.getElementById('circle-container');
+    const lettersGridEl = document.getElementById('letters-grid');
+    const jokerBtnEl = document.getElementById('joker-btn');
     const inputContainerEl = document.getElementById('input-container');
     const foundListEl = document.getElementById('found-words-list');
     const countBadgeEl = document.getElementById('word-count-badge');
     const modalEl = document.getElementById('joker-modal');
-    const canvas = document.getElementById('line-canvas');
-    const ctx = canvas.getContext('2d');
-    const gameBoard = document.getElementById('game-board');
 
     // --- Init ---
     function initGame() {
         populateJokerModal();
-        setupDragEvents();
         startRound();
-        resizeCanvas();
-    }
-
-    function resizeCanvas() {
-        const rect = gameBoard.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
     }
 
     function startRound() {
         timeRemaining = GAME_DURATION;
         currentInputSequence = [];
         foundWords = [];
-        clearCanvas();
-        generateBoardItems();
-        renderCircle();
+        jokerState = { used: false, char: null };
+        generateLetterItems();
+        renderLetters();
+        renderJoker();
         renderInput();
         renderFoundWords();
         updateTimerDisplay();
@@ -229,193 +260,141 @@
         return foundWords.reduce((acc, word) => acc + (word.length * 10), 0);
     }
 
-    function generateBoardItems() {
-        boardItems = [];
-        boardItems.push({ id: 'joker-node', type: 'joker', char: '?', state: 'idle' });
+    function generateLetterItems() {
+        letterItems = [];
         
-        for (let i = 0; i < TOTAL_ITEMS - 1; i++) {
+        // 3 sesli, 5 sessiz harf
+        for (let i = 0; i < TOTAL_LETTERS; i++) {
             let char;
             if (i < 3) char = VOWELS[Math.floor(Math.random() * VOWELS.length)];
             else char = CONSONANTS[Math.floor(Math.random() * CONSONANTS.length)];
-            boardItems.push({ id: `letter-${i}`, type: 'letter', char: char, state: 'idle' });
+            letterItems.push({ 
+                id: `letter-${i}`, 
+                char: char, 
+                selected: false 
+            });
         }
-        boardItems.sort(() => Math.random() - 0.5);
+        // Karıştır
+        letterItems.sort(() => Math.random() - 0.5);
     }
 
-    function renderCircle() {
-        circleContainerEl.innerHTML = '';
-        const angleStep = 360 / TOTAL_ITEMS;
-        const boardRect = gameBoard.getBoundingClientRect();
-        const centerX = boardRect.width / 2;
-        const centerY = boardRect.height / 2;
-
-        boardItems.forEach((item, index) => {
-            const angleDeg = (index * angleStep) - 90; 
-            const angleRad = angleDeg * (Math.PI / 180);
-            const x = centerX + RADIUS * Math.cos(angleRad);
-            const y = centerY + RADIUS * Math.sin(angleRad);
-            
-            item.x = x;
-            item.y = y;
-
-            const btn = document.createElement('div');
-            let baseClass = "absolute w-[46px] h-[46px] rounded-full shadow-md flex items-center justify-center text-lg font-extrabold z-10 select-none cursor-pointer transition-all duration-200 border-2 ";
-            
-            const isSelected = currentInputSequence.some(s => s.id === item.id);
-            
-            if (item.type === 'joker') {
-                baseClass += "joker-node ";
-                if(isSelected) baseClass += "joker-selected ";
-                else baseClass += "bg-yellow-50 dark:bg-yellow-900/10 ";
-                
-                if (isSelected) {
-                    const seqItem = currentInputSequence.find(s => s.id === item.id);
-                    btn.innerHTML = `<span class="text-xl">${seqItem.char}</span><span class="absolute -top-1 -right-1 text-[8px] bg-white rounded-full p-0.5 shadow">✨</span>`;
-                } else {
-                    btn.innerHTML = '<span class="material-symbols-outlined text-xl">lightbulb</span>';
-                }
-            } else {
-                if (isSelected) baseClass += "btn-selected ";
-                else baseClass += "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-600 text-gray-700 dark:text-gray-200 ";
-                btn.innerText = item.char;
-            }
-
-            btn.className = baseClass;
-            btn.id = item.id;
-            btn.style.left = `${x - 23}px`; 
-            btn.style.top = `${y - 23}px`;
-            
-            circleContainerEl.appendChild(btn);
-        });
-    }
-
-    function setupDragEvents() {
-        gameBoard.addEventListener('mousedown', startDrag);
-        window.addEventListener('mousemove', onDrag);
-        window.addEventListener('mouseup', endDrag);
-
-        gameBoard.addEventListener('touchstart', startDrag, {passive: false});
-        window.addEventListener('touchmove', onDrag, {passive: false});
-        window.addEventListener('touchend', endDrag);
-    }
-
-    function startDrag(e) {
-        e.preventDefault(); 
-        isDragging = true;
-        updateCursor(e);
-        checkHit(cursorPosition.x, cursorPosition.y);
-        requestAnimationFrame(drawLoop);
-    }
-
-    function onDrag(e) {
-        if (!isDragging) return;
-        e.preventDefault(); 
-        updateCursor(e);
-        checkHit(cursorPosition.x, cursorPosition.y);
-    }
-
-    function endDrag(e) {
-        isDragging = false;
-        requestAnimationFrame(drawLoop); 
-    }
-
-    function updateCursor(e) {
-        const rect = gameBoard.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        cursorPosition.x = clientX - rect.left;
-        cursorPosition.y = clientY - rect.top;
-    }
-
-    function checkHit(x, y) {
-        const hitItem = boardItems.find(item => {
-            const dx = x - item.x;
-            const dy = y - item.y;
-            return (dx*dx + dy*dy) < (HIT_RADIUS * HIT_RADIUS);
-        });
-
-        if (hitItem) {
-            processHit(hitItem);
-        }
-    }
-
-    function processHit(item) {
-        const lastItem = currentInputSequence[currentInputSequence.length - 1];
-        if (lastItem && lastItem.id === item.id) return;
-
-        if (currentInputSequence.length >= 2 && currentInputSequence[currentInputSequence.length - 2].id === item.id) {
-            currentInputSequence.pop();
-            renderCircle();
-            renderInput();
-            return;
-        }
-
-        if (!currentInputSequence.some(s => s.id === item.id)) {
-            if (item.type === 'joker') {
-                isDragging = false; 
-                jokerPendingNode = item; 
-                openJokerModal();
-            } else {
-                currentInputSequence.push({ ...item }); 
-                renderCircle();
-                renderInput();
-            }
-        }
-    }
-
-    function drawLoop() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if (currentInputSequence.length === 0) return;
-
-        ctx.beginPath();
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.lineWidth = 10; 
-        ctx.strokeStyle = '#7C3AED'; 
-        ctx.globalAlpha = 0.5;
-
-        if (currentInputSequence.length > 0) {
-            const first = currentInputSequence[0];
-            ctx.moveTo(first.x, first.y);
-            for (let i = 1; i < currentInputSequence.length; i++) {
-                const p = currentInputSequence[i];
-                ctx.lineTo(p.x, p.y);
-            }
-        }
-
-        if (isDragging) ctx.lineTo(cursorPosition.x, cursorPosition.y);
-        ctx.stroke();
+    function renderLetters() {
+        lettersGridEl.innerHTML = '';
         
-        if (isDragging) requestAnimationFrame(drawLoop);
+        letterItems.forEach((item, index) => {
+            const btn = document.createElement('button');
+            
+            let classes = "letter-btn w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-extrabold border-2 shadow-md ";
+            
+            if (item.selected) {
+                classes += "selected ";
+            } else {
+                classes += "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-primary hover:shadow-lg ";
+            }
+            
+            btn.className = classes;
+            btn.id = item.id;
+            btn.innerText = item.char;
+            btn.onclick = () => handleLetterClick(index);
+            
+            lettersGridEl.appendChild(btn);
+        });
     }
 
-    function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+    function renderJoker() {
+        const btn = jokerBtnEl;
+        btn.innerHTML = '';
+        
+        if (jokerState.used) {
+            btn.classList.add('selected');
+            btn.innerHTML = `<span class="text-lg font-bold">${jokerState.char}</span>`;
+        } else {
+            btn.classList.remove('selected');
+            btn.innerHTML = '<span class="material-symbols-outlined text-xl">lightbulb</span>';
+        }
+    }
 
-    // --- RENDER INPUT (FITTING 9 ITEMS) ---
+    function handleLetterClick(index) {
+        const item = letterItems[index];
+        
+        if (item.selected) {
+            // Zaten seçili ise, input'tan bu harfi bul ve kaldır
+            removeFromInput(item.id);
+        } else {
+            // Seçili değilse, input'a ekle
+            item.selected = true;
+            currentInputSequence.push({ 
+                id: item.id, 
+                type: 'letter', 
+                char: item.char 
+            });
+        }
+        
+        renderLetters();
+        renderInput();
+    }
+
+    function handleJokerClick() {
+        if (jokerState.used) {
+            // Joker zaten kullanılmış, input'tan kaldır
+            removeFromInput('joker');
+        } else {
+            // Joker modal aç
+            openJokerModal();
+        }
+    }
+
+    function removeFromInput(itemId) {
+        const index = currentInputSequence.findIndex(s => s.id === itemId);
+        if (index === -1) return;
+        
+        const item = currentInputSequence[index];
+        
+        // Sadece bu item'ı kaldır
+        currentInputSequence.splice(index, 1);
+        
+        // Eğer harf ise, selected durumunu kaldır
+        if (item.type === 'letter') {
+            const letterItem = letterItems.find(l => l.id === item.id);
+            if (letterItem) letterItem.selected = false;
+        }
+        
+        // Eğer joker ise, joker state'i sıfırla
+        if (item.type === 'joker') {
+            jokerState = { used: false, char: null };
+            renderJoker();
+        }
+        
+        renderLetters();
+        renderInput();
+    }
+
     function renderInput() {
         inputContainerEl.innerHTML = '';
+        
         if (currentInputSequence.length === 0) {
-             inputContainerEl.innerHTML = '<span class="text-sm text-gray-400 w-full text-center italic font-medium">Harfleri birleştir...</span>';
-             return;
+            inputContainerEl.innerHTML = '<span class="text-sm text-gray-400 w-full text-center italic font-medium">Harfleri seç...</span>';
+            return;
         }
 
         currentInputSequence.forEach((item, index) => {
             const box = document.createElement('div');
             
-            // BOYUT AYARI: w-8 h-8 (32px). Font: text-lg. 
-            let classes = "w-8 h-8 rounded-lg flex items-center justify-center text-lg font-bold shadow-sm animate-pop transition-colors border cursor-pointer hover:bg-red-500 hover:text-white hover:border-red-500 ";
+            let classes = "w-9 h-9 rounded-xl flex items-center justify-center text-lg font-bold shadow-sm animate-pop transition-all border-2 cursor-pointer ";
+            classes += "hover:scale-110 hover:shadow-md active:scale-95 ";
             
-            if (item.type === 'joker') classes += "bg-yellow-100 text-yellow-600 border-yellow-300";
-            else classes += "bg-primary text-white border-primary";
+            if (item.type === 'joker') {
+                classes += "bg-gradient-to-br from-yellow-100 to-yellow-200 text-yellow-700 border-yellow-400 hover:border-red-400 hover:bg-red-100";
+            } else {
+                classes += "bg-gradient-to-br from-primary to-purple-600 text-white border-purple-400 hover:border-red-400";
+            }
             
             box.className = classes;
             box.innerText = item.char;
             
+            // Tıklandığında sadece bu harf silinir
             box.onclick = () => {
-                currentInputSequence.splice(index);
-                renderCircle();
-                renderInput();
-                requestAnimationFrame(drawLoop);
+                removeFromInput(item.id);
             };
 
             inputContainerEl.appendChild(box);
@@ -423,27 +402,40 @@
     }
 
     function removeLastChar() {
-        if(currentInputSequence.length > 0) {
-            currentInputSequence.pop();
-            renderCircle();
-            renderInput();
-            requestAnimationFrame(drawLoop);
-            setTimeout(() => { ctx.clearRect(0, 0, canvas.width, canvas.height); drawLoop(); }, 10);
-        }
+        if (currentInputSequence.length === 0) return;
+        
+        const lastItem = currentInputSequence[currentInputSequence.length - 1];
+        removeFromInput(lastItem.id);
     }
 
     function clearGameInput() {
+        // Tüm harflerin selected durumunu kaldır
+        letterItems.forEach(item => item.selected = false);
+        
+        // Joker state sıfırla
+        jokerState = { used: false, char: null };
+        
         currentInputSequence = [];
-        renderCircle();
+        
+        renderLetters();
+        renderJoker();
         renderInput();
-        clearCanvas();
     }
 
     function submitWord() {
-        if (currentInputSequence.length < 2) return; 
+        if (currentInputSequence.length < 2) {
+            // Shake animasyonu
+            inputContainerEl.parentElement.classList.add('animate-shake');
+            setTimeout(() => inputContainerEl.parentElement.classList.remove('animate-shake'), 300);
+            return;
+        }
+        
         const word = currentInputSequence.map(i => i.char).join('');
         
-        if(foundWords.includes(word)) {
+        if (foundWords.includes(word)) {
+            // Zaten bulunmuş
+            inputContainerEl.parentElement.classList.add('animate-shake');
+            setTimeout(() => inputContainerEl.parentElement.classList.remove('animate-shake'), 300);
             clearGameInput();
             return;
         }
@@ -466,9 +458,10 @@
             return;
         }
         
-        foundWords.slice().reverse().forEach(word => {
+        foundWords.slice().reverse().forEach((word, i) => {
             const div = document.createElement('div');
             div.className = "px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold rounded-xl border border-gray-200 dark:border-gray-700 text-sm shadow-sm animate-pop uppercase tracking-wide";
+            div.style.animationDelay = `${i * 0.05}s`;
             div.innerText = word;
             foundListEl.appendChild(div);
         });
@@ -478,12 +471,26 @@
         const m = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
         const s = (timeRemaining % 60).toString().padStart(2, '0');
         timerEl.innerText = `${m}:${s}`;
+        
+        // Süre azaldıkça renk değişimi
+        if (timeRemaining <= 10) {
+            timerEl.classList.add('text-red-500');
+            timerEl.classList.remove('text-primary');
+        } else {
+            timerEl.classList.remove('text-red-500');
+            timerEl.classList.add('text-primary');
+        }
     }
 
     function shuffleLetters() { 
-        if(currentInputSequence.length === 0) {
-            boardItems.sort(() => Math.random() - 0.5);
-            renderCircle();
+        // Sadece seçili olmayan harfleri karıştır
+        if (currentInputSequence.length === 0) {
+            letterItems.sort(() => Math.random() - 0.5);
+            renderLetters();
+        } else {
+            // Seçili harfler varken de karıştırabilir (pozisyonları değişir)
+            letterItems.sort(() => Math.random() - 0.5);
+            renderLetters();
         }
     }
 
@@ -493,26 +500,35 @@
         grid.innerHTML = '';
         for (let char of FULL_ALPHABET) {
             const btn = document.createElement('button');
-            btn.className = 'aspect-square bg-gray-50 dark:bg-gray-700 rounded-xl font-bold text-gray-700 dark:text-gray-200 hover:bg-primary hover:text-white transition-colors text-lg border border-gray-200 dark:border-gray-600 shadow-sm';
+            btn.className = 'aspect-square bg-gray-50 dark:bg-gray-700 rounded-xl font-bold text-gray-700 dark:text-gray-200 hover:bg-primary hover:text-white transition-all text-lg border border-gray-200 dark:border-gray-600 shadow-sm active:scale-90';
             btn.innerText = char;
             btn.onclick = () => selectJokerChar(char);
             grid.appendChild(btn);
         }
     }
-    function openJokerModal() { modalEl.classList.remove('hidden'); }
-    function closeJokerModal() { modalEl.classList.add('hidden'); jokerPendingNode = null; }
+
+    function openJokerModal() { 
+        modalEl.classList.remove('hidden'); 
+    }
+
+    function closeJokerModal() { 
+        modalEl.classList.add('hidden'); 
+    }
+
     function selectJokerChar(char) {
-        if (jokerPendingNode) {
-            currentInputSequence.push({ ...jokerPendingNode, char: char });
-            renderCircle();
-            renderInput();
-            setTimeout(() => requestAnimationFrame(drawLoop), 50);
-        }
+        jokerState = { used: true, char: char };
+        currentInputSequence.push({ 
+            id: 'joker', 
+            type: 'joker', 
+            char: char 
+        });
+        
+        renderJoker();
+        renderInput();
         closeJokerModal();
     }
 
     window.onload = initGame;
-    window.onresize = resizeCanvas;
 </script>
 </body>
 </html>
