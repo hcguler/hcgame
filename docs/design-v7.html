@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Kelime Oyunu - V7 Compact Flow</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    primary: "#14B8A6",
+                    primaryDark: "#0D9488",
+                },
+                fontFamily: {
+                    display: ["Nunito", "sans-serif"],
+                },
+            },
+        },
+    };
+</script>
+<style>
+    body { 
+        font-family: 'Nunito', sans-serif; 
+        user-select: none; 
+        -webkit-user-select: none; 
+        overscroll-behavior: none; 
+    }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    
+    @keyframes popIn {
+        0% { transform: scale(0.5); opacity: 0; }
+        70% { transform: scale(1.08); }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop { animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+    .animate-shake { animation: shake 0.3s ease-in-out; }
+
+    @keyframes pulse-glow {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(20, 184, 166, 0.4); }
+        50% { box-shadow: 0 0 20px 5px rgba(20, 184, 166, 0.2); }
+    }
+    .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
+    }
+    .animate-float { animation: float 2.5s ease-in-out infinite; }
+
+    /* 3D Letter Key */
+    .key {
+        position: relative;
+        width: 70px;
+        height: 70px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        font-weight: 800;
+        cursor: pointer;
+        transition: all 0.12s ease;
+        
+        background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+        border: 2px solid #e2e8f0;
+        box-shadow: 
+            0 5px 0 #cbd5e1,
+            0 7px 12px rgba(0,0,0,0.08);
+        color: #334155;
+    }
+
+    .key:hover {
+        transform: translateY(-3px);
+        box-shadow: 
+            0 8px 0 #cbd5e1,
+            0 10px 20px rgba(0,0,0,0.12);
+    }
+
+    .key:active {
+        transform: translateY(5px);
+        box-shadow: 
+            0 0px 0 #cbd5e1,
+            0 2px 5px rgba(0,0,0,0.08);
+    }
+
+    .key.selected {
+        background: linear-gradient(180deg, #14B8A6 0%, #0D9488 100%);
+        border-color: #0F766E;
+        box-shadow: 
+            0 5px 0 #0F766E,
+            0 7px 15px rgba(20, 184, 166, 0.35);
+        color: white;
+        transform: translateY(0);
+    }
+
+    .key.selected:hover {
+        transform: translateY(-3px);
+        box-shadow: 
+            0 8px 0 #0F766E,
+            0 10px 20px rgba(20, 184, 166, 0.4);
+    }
+
+    /* Joker Key */
+    .key-joker {
+        width: 140px;
+        height: 60px;
+        border-radius: 20px;
+        background: linear-gradient(180deg, #fef3c7 0%, #fde68a 100%);
+        border: 2px solid #fbbf24;
+        box-shadow: 
+            0 5px 0 #d97706,
+            0 7px 12px rgba(245, 158, 11, 0.2);
+        color: #b45309;
+        font-size: 1.25rem;
+        font-weight: 800;
+        gap: 8px;
+    }
+
+    .key-joker:hover {
+        transform: translateY(-3px);
+        box-shadow: 
+            0 8px 0 #d97706,
+            0 10px 20px rgba(245, 158, 11, 0.3);
+    }
+
+    .key-joker:active {
+        transform: translateY(5px);
+        box-shadow: 0 0px 0 #d97706;
+    }
+
+    .key-joker.selected {
+        background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+        border-color: #b45309;
+        box-shadow: 
+            0 5px 0 #92400e,
+            0 7px 15px rgba(245, 158, 11, 0.4);
+        color: white;
+    }
+
+    /* Action Buttons */
+    .action-btn {
+        flex: 1;
+        height: 52px;
+        border-radius: 14px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        border: 2px solid;
+    }
+
+    .action-btn.backspace {
+        background: linear-gradient(180deg, #fff7ed 0%, #fed7aa 100%);
+        border-color: #fb923c;
+        box-shadow: 0 4px 0 #ea580c, 0 5px 10px rgba(249, 115, 22, 0.15);
+        color: #c2410c;
+    }
+    .action-btn.backspace:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 0 #ea580c, 0 7px 15px rgba(249, 115, 22, 0.2);
+    }
+    .action-btn.backspace:active {
+        transform: translateY(4px);
+        box-shadow: 0 0px 0 #ea580c;
+    }
+
+    .action-btn.clear {
+        background: linear-gradient(180deg, #fef2f2 0%, #fecaca 100%);
+        border-color: #f87171;
+        box-shadow: 0 4px 0 #dc2626, 0 5px 10px rgba(239, 68, 68, 0.15);
+        color: #b91c1c;
+    }
+    .action-btn.clear:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 0 #dc2626, 0 7px 15px rgba(239, 68, 68, 0.2);
+    }
+    .action-btn.clear:active {
+        transform: translateY(4px);
+        box-shadow: 0 0px 0 #dc2626;
+    }
+
+    /* Submit Button */
+    .submit-btn {
+        background: linear-gradient(180deg, #14B8A6 0%, #0D9488 100%);
+        border: 2px solid #0F766E;
+        box-shadow: 
+            0 5px 0 #0F766E,
+            0 7px 15px rgba(20, 184, 166, 0.3);
+    }
+    .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 7px 0 #0F766E,
+            0 9px 20px rgba(20, 184, 166, 0.4);
+    }
+    .submit-btn:active {
+        transform: translateY(5px);
+        box-shadow: 0 0px 0 #0F766E;
+    }
+
+    /* Input Letter */
+    .input-letter {
+        transition: all 0.15s ease;
+    }
+    .input-letter:hover {
+        transform: scale(1.12) rotate(-3deg);
+        box-shadow: 0 8px 25px rgba(20, 184, 166, 0.4);
+    }
+
+    /* Keyboard Layout */
+    .keyboard {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+    .keyboard-row {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+    }
+</style>
+</head>
+<body class="bg-gradient-to-br from-teal-50 via-cyan-50 to-emerald-50 min-h-screen flex items-center justify-center font-display overflow-hidden fixed w-full h-full">
+
+<div class="w-full max-w-md h-full bg-white/90 backdrop-blur-xl sm:rounded-[32px] sm:shadow-2xl overflow-hidden relative flex flex-col border border-teal-100">
+    
+    <!-- Header -->
+    <header class="pt-4 pb-2 px-5 flex justify-between items-center bg-white/95 backdrop-blur z-10 border-b border-teal-100">
+        <div class="flex flex-col">
+            <h1 class="text-xl font-black text-gray-800 leading-none tracking-tight">
+                KELIME<span class="text-primary">AKIŞI</span>
+            </h1>
+            <span class="text-[10px] text-teal-500 font-semibold">V7 - Compact Flow</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <div class="bg-teal-50 px-3 py-1.5 rounded-xl flex items-center space-x-1 border border-teal-200">
+                <span class="material-symbols-outlined text-primary text-lg">timer</span>
+                <span id="timer" class="text-lg font-bold text-primary tabular-nums">01:30</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Game Area -->
+    <div class="flex-shrink-0 flex flex-col items-center justify-start pt-5 w-full relative z-20 bg-transparent px-4">
+        
+        <!-- Keyboard: 4-4 Letters -->
+        <div class="keyboard mb-4">
+            <!-- Row 1: 4 letters -->
+            <div class="keyboard-row">
+                <button id="key-0" onclick="handleLetterClick(0)" class="key">A</button>
+                <button id="key-1" onclick="handleLetterClick(1)" class="key">B</button>
+                <button id="key-2" onclick="handleLetterClick(2)" class="key">C</button>
+                <button id="key-3" onclick="handleLetterClick(3)" class="key">D</button>
+            </div>
+            <!-- Row 2: 4 letters -->
+            <div class="keyboard-row">
+                <button id="key-4" onclick="handleLetterClick(4)" class="key">E</button>
+                <button id="key-5" onclick="handleLetterClick(5)" class="key">F</button>
+                <button id="key-6" onclick="handleLetterClick(6)" class="key">G</button>
+                <button id="key-7" onclick="handleLetterClick(7)" class="key">H</button>
+            </div>
+        </div>
+
+        <!-- Centered Joker Button -->
+        <div class="mb-4">
+            <button id="joker-btn" onclick="handleJokerClick()" class="key key-joker animate-float flex items-center justify-center">
+                <span class="material-symbols-outlined text-2xl">auto_awesome</span>
+                <span>JOKER</span>
+            </button>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="w-full mb-4">
+            <button onclick="submitWord()" class="submit-btn w-full py-4 rounded-2xl font-bold text-white text-lg flex items-center justify-center gap-2 transition-all">
+                <span class="material-symbols-outlined text-2xl">check_circle</span>
+                <span>KAYDET</span>
+            </button>
+        </div>
+
+        <!-- Input Area (Word Display) -->
+        <div class="w-full mb-3">
+            <div id="input-wrapper" class="relative w-full min-h-[64px] bg-gradient-to-b from-gray-50 to-gray-100 rounded-2xl border-2 border-gray-200 flex items-center justify-center overflow-hidden py-3 px-3 shadow-inner">
+                <div id="input-container" class="flex items-center justify-center gap-2 flex-wrap">
+                    <span class="text-sm text-gray-400 w-full text-center italic font-medium">Harflere tıkla...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons: Backspace | Clear -->
+        <div class="w-full flex gap-3 mb-4">
+            <button onclick="removeLastChar()" class="action-btn backspace">
+                <span class="material-symbols-outlined text-xl">backspace</span>
+                <span>Son Harf</span>
+            </button>
+            <button onclick="clearGameInput()" class="action-btn clear">
+                <span class="material-symbols-outlined text-xl">delete_forever</span>
+                <span>Temizle</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Found Words -->
+    <div class="flex-1 w-full bg-white/60 backdrop-blur border-t border-gray-200 overflow-hidden flex flex-col">
+        <div class="px-5 py-2.5 flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur z-10 border-b border-gray-100">
+            <h2 class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm text-primary">emoji_events</span>
+                Bulunan Kelimeler
+            </h2>
+            <span id="word-count-badge" class="bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full border border-primary/20">0</span>
+        </div>
+        <div id="found-words-list" class="flex-1 overflow-y-auto px-5 content-start flex flex-wrap gap-2 pb-20 scrollbar-hide pt-3">
+            <div class="w-full text-center mt-4 opacity-50">
+                <span class="material-symbols-outlined text-5xl text-gray-300">pending</span>
+                <p class="text-xs text-gray-400 mt-2 font-medium">Henüz kelime bulunamadı</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Joker Modal -->
+    <div id="joker-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-[340px] overflow-hidden flex flex-col border border-amber-100">
+            <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-amber-50 to-yellow-50">
+                <div>
+                    <h3 class="text-lg font-extrabold text-gray-800 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-amber-500">auto_awesome</span>
+                        Joker Harf
+                    </h3>
+                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Bir harf seç</p>
+                </div>
+                <button onclick="closeJokerModal()" class="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="p-4 bg-white">
+                <div id="alphabet-grid" class="grid grid-cols-7 gap-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // === CONFIG ===
+    const GAME_DURATION = 90; 
+    const LETTER_COUNT = 8;
+    const MAX_INPUT = 9;
+    const VOWELS = "AEIİOÖUÜ";
+    const CONSONANTS = "BCÇDFGĞHJKLMNPRSŞTVYZ";
+    const FULL_ALPHABET = "ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ";
+    
+    // === STATE ===
+    let timerInterval;
+    let timeRemaining = GAME_DURATION;
+    let letters = [];
+    let jokerState = { used: false, char: null };
+    let currentInputSequence = []; 
+    let foundWords = [];
+
+    // === DOM ===
+    const timerEl = document.getElementById('timer');
+    const inputContainerEl = document.getElementById('input-container');
+    const inputWrapperEl = document.getElementById('input-wrapper');
+    const foundListEl = document.getElementById('found-words-list');
+    const countBadgeEl = document.getElementById('word-count-badge');
+    const modalEl = document.getElementById('joker-modal');
+    const jokerBtnEl = document.getElementById('joker-btn');
+
+    // === INIT ===
+    function initGame() {
+        populateJokerModal();
+        startRound();
+    }
+
+    function startRound() {
+        timeRemaining = GAME_DURATION;
+        currentInputSequence = [];
+        foundWords = [];
+        jokerState = { used: false, char: null };
+        
+        generateLetters();
+        renderKeyboard();
+        renderJoker();
+        renderInput();
+        renderFoundWords();
+        updateTimerDisplay();
+        
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeRemaining--;
+            updateTimerDisplay();
+            if (timeRemaining <= 0) endRound();
+        }, 1000);
+    }
+
+    function endRound() {
+        clearInterval(timerInterval);
+        const score = foundWords.reduce((acc, word) => acc + (word.length * 10), 0);
+        alert(`🎉 Oyun Bitti!\n\nBulunan Kelime: ${foundWords.length}\nToplam Puan: ${score}`);
+        startRound();
+    }
+
+    function generateLetters() {
+        letters = [];
+        const usedChars = new Set();
+        
+        // 3 sesli
+        for (let i = 0; i < 3; i++) {
+            let char;
+            do {
+                char = VOWELS[Math.floor(Math.random() * VOWELS.length)];
+            } while (usedChars.has(char));
+            usedChars.add(char);
+            letters.push({ char, selected: false });
+        }
+        
+        // 5 sessiz
+        for (let i = 0; i < 5; i++) {
+            let char;
+            do {
+                char = CONSONANTS[Math.floor(Math.random() * CONSONANTS.length)];
+            } while (usedChars.has(char));
+            usedChars.add(char);
+            letters.push({ char, selected: false });
+        }
+        
+        // Karıştır
+        letters.sort(() => Math.random() - 0.5);
+    }
+
+    function renderKeyboard() {
+        for (let i = 0; i < LETTER_COUNT; i++) {
+            const keyEl = document.getElementById(`key-${i}`);
+            const letter = letters[i];
+            
+            keyEl.textContent = letter.char;
+            keyEl.classList.toggle('selected', letter.selected);
+        }
+    }
+
+    function renderJoker() {
+        if (jokerState.used) {
+            jokerBtnEl.classList.add('selected');
+            jokerBtnEl.classList.remove('animate-float');
+            jokerBtnEl.innerHTML = `
+                <span class="material-symbols-outlined text-2xl">auto_awesome</span>
+                <span class="text-xl font-black">${jokerState.char}</span>
+            `;
+        } else {
+            jokerBtnEl.classList.remove('selected');
+            jokerBtnEl.classList.add('animate-float');
+            jokerBtnEl.innerHTML = `
+                <span class="material-symbols-outlined text-2xl">auto_awesome</span>
+                <span>JOKER</span>
+            `;
+        }
+    }
+
+    function handleLetterClick(index) {
+        const letter = letters[index];
+        
+        if (letter.selected) {
+            removeFromInput(`letter-${index}`);
+        } else {
+            if (currentInputSequence.length >= MAX_INPUT) return;
+            letter.selected = true;
+            currentInputSequence.push({ 
+                id: `letter-${index}`, 
+                type: 'letter', 
+                char: letter.char
+            });
+        }
+        
+        renderKeyboard();
+        renderInput();
+    }
+
+    function handleJokerClick() {
+        if (jokerState.used) {
+            removeFromInput('joker');
+        } else {
+            if (currentInputSequence.length >= MAX_INPUT) return;
+            openJokerModal();
+        }
+    }
+
+    function removeFromInput(itemId) {
+        const index = currentInputSequence.findIndex(s => s.id === itemId);
+        if (index === -1) return;
+        
+        const item = currentInputSequence[index];
+        currentInputSequence.splice(index, 1);
+        
+        if (item.type === 'letter') {
+            const letterIndex = parseInt(item.id.split('-')[1]);
+            letters[letterIndex].selected = false;
+        } else if (item.type === 'joker') {
+            jokerState = { used: false, char: null };
+            renderJoker();
+        }
+        
+        renderKeyboard();
+        renderInput();
+    }
+
+    function renderInput() {
+        inputContainerEl.innerHTML = '';
+        
+        if (currentInputSequence.length === 0) {
+            inputContainerEl.innerHTML = '<span class="text-sm text-gray-400 w-full text-center italic font-medium">Harflere tıkla...</span>';
+            return;
+        }
+
+        currentInputSequence.forEach((item, index) => {
+            const box = document.createElement('div');
+            let classes = "input-letter w-11 h-11 rounded-xl flex items-center justify-center text-lg font-extrabold shadow-lg border-2 cursor-pointer animate-pop ";
+            
+            if (item.type === 'joker') {
+                classes += "bg-gradient-to-b from-amber-400 to-amber-500 text-white border-amber-300";
+            } else {
+                classes += "bg-gradient-to-b from-teal-400 to-teal-500 text-white border-teal-300";
+            }
+            
+            box.className = classes;
+            box.innerText = item.char;
+            box.style.animationDelay = `${index * 0.04}s`;
+            
+            box.onclick = () => removeFromInput(item.id);
+            inputContainerEl.appendChild(box);
+        });
+    }
+
+    function removeLastChar() {
+        if (currentInputSequence.length === 0) return;
+        const lastItem = currentInputSequence[currentInputSequence.length - 1];
+        removeFromInput(lastItem.id);
+    }
+
+    function clearGameInput() {
+        letters.forEach(l => l.selected = false);
+        jokerState = { used: false, char: null };
+        currentInputSequence = [];
+        
+        renderKeyboard();
+        renderJoker();
+        renderInput();
+    }
+
+    function submitWord() {
+        if (currentInputSequence.length < 2) {
+            shakeInput();
+            return;
+        }
+        
+        const word = currentInputSequence.map(i => i.char).join('');
+        
+        if (foundWords.includes(word)) {
+            shakeInput();
+            clearGameInput();
+            return;
+        }
+
+        foundWords.push(word);
+        clearGameInput(); 
+        renderFoundWords();
+    }
+
+    function shakeInput() {
+        inputWrapperEl.classList.add('animate-shake');
+        setTimeout(() => inputWrapperEl.classList.remove('animate-shake'), 300);
+    }
+
+    function renderFoundWords() {
+        countBadgeEl.innerText = foundWords.length;
+        foundListEl.innerHTML = '';
+        
+        if (foundWords.length === 0) {
+            foundListEl.innerHTML = `
+                <div class="w-full text-center mt-4 opacity-50">
+                    <span class="material-symbols-outlined text-5xl text-gray-300">pending</span>
+                    <p class="text-xs text-gray-400 mt-2 font-medium">Henüz kelime bulunamadı</p>
+                </div>`;
+            return;
+        }
+        
+        foundWords.slice().reverse().forEach((word, i) => {
+            const div = document.createElement('div');
+            div.className = "px-4 py-2.5 bg-white rounded-xl text-sm font-bold shadow-md uppercase tracking-wide text-gray-700 border border-gray-200 animate-pop";
+            div.style.animationDelay = `${i * 0.03}s`;
+            div.innerText = word;
+            foundListEl.appendChild(div);
+        });
+    }
+
+    function updateTimerDisplay() {
+        const m = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
+        const s = (timeRemaining % 60).toString().padStart(2, '0');
+        timerEl.innerText = `${m}:${s}`;
+        
+        if (timeRemaining <= 10) {
+            timerEl.classList.add('text-red-500');
+            timerEl.classList.remove('text-primary');
+        } else {
+            timerEl.classList.remove('text-red-500');
+            timerEl.classList.add('text-primary');
+        }
+    }
+
+    // === MODAL ===
+    function populateJokerModal() {
+        const grid = document.getElementById('alphabet-grid');
+        grid.innerHTML = '';
+        for (let char of FULL_ALPHABET) {
+            const btn = document.createElement('button');
+            btn.className = 'aspect-square bg-gray-50 rounded-lg font-bold text-gray-700 hover:bg-amber-500 hover:text-white transition-all text-sm border border-gray-200 shadow-sm active:scale-90';
+            btn.innerText = char;
+            btn.onclick = () => selectJokerChar(char);
+            grid.appendChild(btn);
+        }
+    }
+
+    function openJokerModal() { 
+        modalEl.classList.remove('hidden'); 
+    }
+
+    function closeJokerModal() { 
+        modalEl.classList.add('hidden'); 
+    }
+
+    function selectJokerChar(char) {
+        jokerState = { used: true, char: char };
+        currentInputSequence.push({ 
+            id: 'joker', 
+            type: 'joker', 
+            char: char
+        });
+        
+        renderJoker();
+        renderInput();
+        closeJokerModal();
+    }
+
+    // === START ===
+    window.onload = initGame;
+</script>
+</body>
+</html>

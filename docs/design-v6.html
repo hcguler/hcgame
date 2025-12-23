@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+    <title>Kelime Oyunu - V6 Clean Grid</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#7C3AED",
+                        secondary: "#DB2777",
+                        "background-light": "#F8FAFC",
+                        "background-dark": "#0F172A",
+                    },
+                    fontFamily: {
+                        display: ["Nunito", "sans-serif"],
+                    },
+                    boxShadow: {
+                        'soft': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                    }
+                },
+            },
+        };
+    </script>
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            overscroll-behavior: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop { animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+        .animate-shake { animation: shake 0.3s ease-in-out; }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+            60% { transform: scale(1.1) rotate(3deg); }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        .animate-bounce-in { animation: bounceIn 0.25s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards; }
+
+        .letter-btn {
+            transition: all 0.15s ease;
+        }
+        .letter-btn:active {
+            transform: scale(0.92);
+        }
+        .letter-btn.selected {
+            background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%) !important;
+            color: white !important;
+            border-color: #5B21B6 !important;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+            transform: scale(1.05);
+        }
+        .letter-btn.disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        .joker-btn {
+            background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+            border-color: #F59E0B;
+            color: #D97706;
+        }
+        .joker-btn.selected {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important;
+            color: white !important;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.5);
+        }
+        .dark .joker-btn {
+            background: linear-gradient(135deg, rgba(180, 83, 9, 0.3) 0%, rgba(146, 64, 14, 0.3) 100%);
+            border-color: rgba(245, 158, 11, 0.5);
+            color: #FBBF24;
+        }
+
+        .corner-btn {
+            transition: all 0.2s ease;
+        }
+        .corner-btn:hover {
+            transform: scale(1.1);
+        }
+        .corner-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Input slot styling */
+        .input-slot {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 700;
+            transition: all 0.15s ease;
+        }
+        .input-slot.empty {
+            background: transparent;
+            border: 2px dashed #E5E7EB;
+        }
+        .dark .input-slot.empty {
+            border-color: #374151;
+        }
+        .input-slot.filled {
+            cursor: pointer;
+        }
+        .input-slot.filled:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .input-slot.filled:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center font-display transition-colors duration-300 overflow-hidden fixed w-full h-full">
+    <div class="w-full max-w-md h-full bg-white dark:bg-gray-900 sm:rounded-[32px] sm:shadow-2xl overflow-hidden relative flex flex-col">
+
+        <!-- Header -->
+        <header class="pt-4 pb-2 px-5 flex justify-between items-center bg-white dark:bg-gray-900 z-10 border-b border-gray-100 dark:border-gray-800">
+            <div class="flex flex-col">
+                <h1 class="text-xl font-black text-gray-800 dark:text-white leading-none tracking-tight">KELİME<span class="text-primary">AVCISI</span></h1>
+            </div>
+            <div class="bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1.5 rounded-xl flex items-center space-x-1 border border-indigo-100 dark:border-indigo-800">
+                <span class="material-symbols-outlined text-primary text-lg">timer</span>
+                <span id="timer" class="text-lg font-bold text-primary tabular-nums">01:30</span>
+            </div>
+        </header>
+
+        <!-- Game Area -->
+        <div class="flex-shrink-0 flex flex-col items-center justify-start pt-6 w-full relative z-20 bg-white dark:bg-gray-900">
+            
+            <!-- Game Board Area -->
+            <div id="game-board" class="relative w-[320px] h-[240px] flex items-center justify-center mb-4">
+                
+                <!-- Sol Üst: Shuffle (Karıştır) - YER DEĞİŞTİ -->
+                <div class="absolute top-0 left-0 z-20">
+                    <button onclick="shuffleLetters()" class="corner-btn w-14 h-14 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-full shadow-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-primary hover:border-primary">
+                        <span class="material-symbols-outlined text-2xl">shuffle</span>
+                    </button>
+                </div>
+                
+                <!-- Sağ Üst: Joker -->
+                <div class="absolute top-0 right-0 z-20">
+                    <button id="joker-btn" onclick="handleJokerClick()" class="corner-btn joker-btn w-14 h-14 border-2 rounded-full shadow-lg flex items-center justify-center font-bold text-lg">
+                        <span class="material-symbols-outlined text-2xl">lightbulb</span>
+                    </button>
+                </div>
+                
+                <!-- Sol Alt: Temizle (Silme) - YER DEĞİŞTİ -->
+                <div class="absolute bottom-0 left-0 z-20">
+                    <button onclick="clearGameInput()" class="corner-btn w-14 h-14 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-full shadow-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-red-500 hover:border-red-400 dark:hover:text-red-400 dark:hover:border-red-500">
+                        <span class="material-symbols-outlined text-2xl">delete_sweep</span>
+                    </button>
+                </div>
+                
+                <!-- Sağ Alt: Backspace -->
+                <div class="absolute bottom-0 right-0 z-20">
+                    <button onclick="removeLastChar()" class="corner-btn w-14 h-14 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-full shadow-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-orange-500 hover:border-orange-400">
+                        <span class="material-symbols-outlined text-2xl">backspace</span>
+                    </button>
+                </div>
+                
+                <!-- 8 Harf Grid (4x2) - Arka plan YOK -->
+                <div id="letters-grid" class="grid grid-cols-4 gap-3 z-10">
+                    <!-- Harfler buraya render edilecek -->
+                </div>
+            </div>
+
+            <!-- Input Alanı - 9 Harf Kapasiteli -->
+            <div class="w-full px-4 mt-2 mb-2">
+                <div class="relative w-full min-h-[56px] bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700 flex items-center justify-center overflow-hidden py-2.5 px-3">
+                     <div id="input-container" class="flex items-center justify-center gap-1.5">
+                        <!-- 9 slot için placeholder -->
+                     </div>
+                </div>
+            </div>
+
+            <!-- Kaydet Butonu -->
+            <div class="flex w-full px-6 mb-4">
+                <button onclick="submitWord()" class="w-full py-3.5 rounded-2xl font-bold text-white bg-primary shadow-lg shadow-purple-500/30 hover:bg-purple-600 active:scale-95 flex items-center justify-center space-x-2 transition-all">
+                    <span>KAYDET</span>
+                    <span class="material-symbols-outlined">check_circle</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Bulunan Kelimeler -->
+        <div class="flex-1 w-full bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)]">
+            <div class="px-6 py-3 flex items-center justify-between sticky top-0 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur z-10">
+                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Bulunanlar</h2>
+                <span id="word-count-badge" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-xs font-bold px-2.5 py-0.5 rounded-md">0</span>
+            </div>
+            <div id="found-words-list" class="flex-1 overflow-y-auto px-6 content-start flex flex-wrap gap-2 pb-20 scrollbar-hide">
+                <div class="w-full text-center mt-6">
+                    <span class="material-symbols-outlined text-4xl text-gray-200 dark:text-gray-700">history_edu</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Joker Modal -->
+        <div id="joker-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+            <div class="bg-white dark:bg-gray-800 rounded-[2rem] shadow-2xl w-full max-w-[320px] overflow-hidden flex flex-col border border-gray-100 dark:border-gray-700">
+                <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800">
+                    <div>
+                        <h3 class="text-lg font-extrabold text-gray-800 dark:text-white">Joker Harf</h3>
+                        <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Hangi harf olsun?</p>
+                    </div>
+                    <button onclick="closeJokerModal()" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-500 hover:text-red-500 transition-colors"><span class="material-symbols-outlined text-sm">close</span></button>
+                </div>
+                <div class="p-3 bg-white dark:bg-gray-800">
+                    <div id="alphabet-grid" class="grid grid-cols-6 gap-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const GAME_DURATION = 90;
+        const TOTAL_LETTERS = 8;
+        const MAX_INPUT_SLOTS = 9;
+        const VOWELS = "AEIİOÖUÜ";
+        const CONSONANTS = "BCÇDFGĞHJKLMNPRSŞTVYZ";
+        const FULL_ALPHABET = "ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ";
+
+        // --- State ---
+        let timerInterval;
+        let timeRemaining = GAME_DURATION;
+        let letterItems = [];
+        let jokerState = { used: false, char: null };
+        let currentInputSequence = [];
+        let foundWords = [];
+
+        // --- DOM ---
+        const timerEl = document.getElementById('timer');
+        const lettersGridEl = document.getElementById('letters-grid');
+        const jokerBtnEl = document.getElementById('joker-btn');
+        const inputContainerEl = document.getElementById('input-container');
+        const foundListEl = document.getElementById('found-words-list');
+        const countBadgeEl = document.getElementById('word-count-badge');
+        const modalEl = document.getElementById('joker-modal');
+
+        // --- Init ---
+        function initGame() {
+            populateJokerModal();
+            startRound();
+        }
+
+        function startRound() {
+            timeRemaining = GAME_DURATION;
+            currentInputSequence = [];
+            foundWords = [];
+            jokerState = { used: false, char: null };
+            generateLetterItems();
+            renderLetters();
+            renderJoker();
+            renderInput();
+            renderFoundWords();
+            updateTimerDisplay();
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                updateTimerDisplay();
+                if (timeRemaining <= 0) endRound();
+            }, 1000);
+        }
+
+        function endRound() {
+            clearInterval(timerInterval);
+            alert("Oyun Bitti! Puanınız: " + calculateScore());
+            startRound();
+        }
+
+        function calculateScore() {
+            return foundWords.reduce((acc, word) => acc + (word.length * 10), 0);
+        }
+
+        function generateLetterItems() {
+            letterItems = [];
+            for (let i = 0; i < TOTAL_LETTERS; i++) {
+                let char;
+                if (i < 3) char = VOWELS[Math.floor(Math.random() * VOWELS.length)];
+                else char = CONSONANTS[Math.floor(Math.random() * CONSONANTS.length)];
+                letterItems.push({ id: `letter-${i}`, char: char, selected: false });
+            }
+            letterItems.sort(() => Math.random() - 0.5);
+        }
+
+        function renderLetters() {
+            lettersGridEl.innerHTML = '';
+            letterItems.forEach((item, index) => {
+                const btn = document.createElement('button');
+                let classes = "letter-btn w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-extrabold border-2 shadow-md ";
+                if (item.selected) {
+                    classes += "selected ";
+                } else {
+                    classes += "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-primary hover:shadow-lg ";
+                }
+                btn.className = classes;
+                btn.id = item.id;
+                btn.innerText = item.char;
+                btn.onclick = () => handleLetterClick(index);
+                lettersGridEl.appendChild(btn);
+            });
+        }
+
+        function renderJoker() {
+            const btn = jokerBtnEl;
+            btn.innerHTML = '';
+            if (jokerState.used) {
+                btn.classList.add('selected');
+                btn.innerHTML = `<span class="text-xl font-bold">${jokerState.char}</span>`;
+            } else {
+                btn.classList.remove('selected');
+                btn.innerHTML = '<span class="material-symbols-outlined text-2xl">lightbulb</span>';
+            }
+        }
+
+        function handleLetterClick(index) {
+            const item = letterItems[index];
+            if (item.selected) {
+                removeFromInput(item.id);
+            } else {
+                if (currentInputSequence.length >= MAX_INPUT_SLOTS) return;
+                item.selected = true;
+                currentInputSequence.push({ id: item.id, type: 'letter', char: item.char });
+            }
+            renderLetters();
+            renderInput();
+        }
+
+        function handleJokerClick() {
+            if (jokerState.used) {
+                removeFromInput('joker');
+            } else {
+                if (currentInputSequence.length >= MAX_INPUT_SLOTS) return;
+                openJokerModal();
+            }
+        }
+
+        function removeFromInput(itemId) {
+            const index = currentInputSequence.findIndex(s => s.id === itemId);
+            if (index === -1) return;
+            const item = currentInputSequence[index];
+            currentInputSequence.splice(index, 1);
+            if (item.type === 'letter') {
+                const letterItem = letterItems.find(l => l.id === item.id);
+                if (letterItem) letterItem.selected = false;
+            }
+            if (item.type === 'joker') {
+                jokerState = { used: false, char: null };
+                renderJoker();
+            }
+            renderLetters();
+            renderInput();
+        }
+
+        function renderInput() {
+            inputContainerEl.innerHTML = '';
+            
+            // Render filled slots with animation
+            currentInputSequence.forEach((item, index) => {
+                const box = document.createElement('div');
+                let classes = "input-slot filled animate-bounce-in ";
+                
+                if (item.type === 'joker') {
+                    classes += "bg-gradient-to-br from-yellow-100 to-yellow-200 text-yellow-700 border-2 border-yellow-400 shadow-md";
+                } else {
+                    classes += "bg-gradient-to-br from-primary to-purple-600 text-white border-2 border-purple-400 shadow-md";
+                }
+                
+                box.className = classes;
+                box.style.animationDelay = `${index * 0.03}s`;
+                box.innerText = item.char;
+                box.onclick = () => removeFromInput(item.id);
+                inputContainerEl.appendChild(box);
+            });
+            
+            // Render empty slots (remaining up to 9)
+            const emptyCount = MAX_INPUT_SLOTS - currentInputSequence.length;
+            for (let i = 0; i < emptyCount; i++) {
+                const emptyBox = document.createElement('div');
+                emptyBox.className = "input-slot empty";
+                inputContainerEl.appendChild(emptyBox);
+            }
+        }
+
+        function removeLastChar() {
+            if (currentInputSequence.length === 0) return;
+            const lastItem = currentInputSequence[currentInputSequence.length - 1];
+            removeFromInput(lastItem.id);
+        }
+
+        function clearGameInput() {
+            letterItems.forEach(item => item.selected = false);
+            jokerState = { used: false, char: null };
+            currentInputSequence = [];
+            renderLetters();
+            renderJoker();
+            renderInput();
+        }
+
+        function submitWord() {
+            if (currentInputSequence.length < 2) {
+                inputContainerEl.parentElement.classList.add('animate-shake');
+                setTimeout(() => inputContainerEl.parentElement.classList.remove('animate-shake'), 300);
+                return;
+            }
+            const word = currentInputSequence.map(i => i.char).join('');
+            if (foundWords.includes(word)) {
+                inputContainerEl.parentElement.classList.add('animate-shake');
+                setTimeout(() => inputContainerEl.parentElement.classList.remove('animate-shake'), 300);
+                clearGameInput();
+                return;
+            }
+            foundWords.push(word);
+            clearGameInput();
+            renderFoundWords();
+        }
+
+        function renderFoundWords() {
+            countBadgeEl.innerText = foundWords.length;
+            foundListEl.innerHTML = '';
+            if (foundWords.length === 0) {
+                foundListEl.innerHTML = `
+                    <div class="w-full text-center mt-6 opacity-40">
+                        <span class="material-symbols-outlined text-4xl text-gray-300">history_edu</span>
+                        <p class="text-xs text-gray-400 mt-2">Henüz kelime bulunamadı</p>
+                    </div>`;
+                return;
+            }
+            foundWords.slice().reverse().forEach((word, i) => {
+                const div = document.createElement('div');
+                div.className = "px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold rounded-xl border border-gray-200 dark:border-gray-700 text-sm shadow-sm animate-pop uppercase tracking-wide";
+                div.style.animationDelay = `${i * 0.05}s`;
+                div.innerText = word;
+                foundListEl.appendChild(div);
+            });
+        }
+
+        function updateTimerDisplay() {
+            const m = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
+            const s = (timeRemaining % 60).toString().padStart(2, '0');
+            timerEl.innerText = `${m}:${s}`;
+            if (timeRemaining <= 10) {
+                timerEl.classList.add('text-red-500');
+                timerEl.classList.remove('text-primary');
+            } else {
+                timerEl.classList.remove('text-red-500');
+                timerEl.classList.add('text-primary');
+            }
+        }
+
+        function shuffleLetters() {
+            letterItems.sort(() => Math.random() - 0.5);
+            renderLetters();
+        }
+
+        // --- MODAL ---
+        function populateJokerModal() {
+            const grid = document.getElementById('alphabet-grid');
+            grid.innerHTML = '';
+            for (let char of FULL_ALPHABET) {
+                const btn = document.createElement('button');
+                btn.className = 'aspect-square bg-gray-50 dark:bg-gray-700 rounded-xl font-bold text-gray-700 dark:text-gray-200 hover:bg-primary hover:text-white transition-all text-lg border border-gray-200 dark:border-gray-600 shadow-sm active:scale-90';
+                btn.innerText = char;
+                btn.onclick = () => selectJokerChar(char);
+                grid.appendChild(btn);
+            }
+        }
+
+        function openJokerModal() {
+            modalEl.classList.remove('hidden');
+        }
+
+        function closeJokerModal() {
+            modalEl.classList.add('hidden');
+        }
+
+        function selectJokerChar(char) {
+            jokerState = { used: true, char: char };
+            currentInputSequence.push({ id: 'joker', type: 'joker', char: char });
+            renderJoker();
+            renderInput();
+            closeJokerModal();
+        }
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>
