@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Kelime Oyunu - Petek Tasarım</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    primary: "#7C3AED",
+                    honey: "#F59E0B",
+                    honeyDark: "#D97706",
+                },
+                fontFamily: {
+                    display: ["Nunito", "sans-serif"],
+                },
+            },
+        },
+    };
+</script>
+<style>
+    body { 
+        font-family: 'Nunito', sans-serif; 
+        user-select: none; 
+        -webkit-user-select: none; 
+        overscroll-behavior: none; 
+    }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    
+    @keyframes popIn {
+        0% { transform: scale(0.5); opacity: 0; }
+        70% { transform: scale(1.1); }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop { animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+    .animate-shake { animation: shake 0.3s ease-in-out; }
+
+    @keyframes pulse-glow {
+        0%, 100% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.3); }
+        50% { box-shadow: 0 0 35px rgba(245, 158, 11, 0.6); }
+    }
+    .animate-glow { animation: pulse-glow 2s ease-in-out infinite; }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-5px); }
+    }
+    .animate-float { animation: float 3s ease-in-out infinite; }
+
+    /* Hexagon Shape */
+    .hexagon {
+        width: 70px;
+        height: 80px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .hexagon::before {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: inherit;
+        clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        transition: all 0.2s ease;
+    }
+
+    .hexagon:hover {
+        transform: scale(1.08);
+    }
+    
+    .hexagon:active {
+        transform: scale(0.95);
+    }
+
+    .hexagon-content {
+        position: relative;
+        z-index: 10;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: inherit;
+    }
+
+    /* Normal Harf */
+    .hex-letter::before {
+        background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1), inset 0 2px 0 rgba(255,255,255,0.8);
+    }
+    .hex-letter {
+        color: #374151;
+    }
+    .hex-letter:hover::before {
+        background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+        box-shadow: 0 6px 20px rgba(124, 58, 237, 0.2);
+    }
+
+    /* Seçili Harf */
+    .hex-letter.selected::before {
+        background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%);
+        box-shadow: 0 6px 25px rgba(124, 58, 237, 0.5);
+    }
+    .hex-letter.selected {
+        color: white;
+        transform: scale(1.1);
+    }
+
+    /* Merkez Harf */
+    .hex-center::before {
+        background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+        box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3), inset 0 2px 0 rgba(255,255,255,0.5);
+    }
+    .hex-center {
+        color: #B45309;
+    }
+    .hex-center:hover::before {
+        background: linear-gradient(135deg, #FDE68A 0%, #FCD34D 100%);
+    }
+    .hex-center.selected::before {
+        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        box-shadow: 0 6px 30px rgba(245, 158, 11, 0.6);
+    }
+    .hex-center.selected {
+        color: white;
+        transform: scale(1.1);
+    }
+
+    /* Joker Buton */
+    .joker-hex::before {
+        background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
+    }
+    .joker-hex {
+        color: #059669;
+        width: 55px;
+        height: 63px;
+    }
+    .joker-hex:hover::before {
+        background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+    }
+    .joker-hex.selected::before {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        box-shadow: 0 6px 25px rgba(16, 185, 129, 0.5);
+    }
+    .joker-hex.selected {
+        color: white;
+    }
+
+    /* Honeycomb Grid */
+    .honeycomb {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+    }
+    .honeycomb-row {
+        display: flex;
+        gap: 6px;
+    }
+    .honeycomb-row:nth-child(2) {
+        margin-top: -18px;
+    }
+    .honeycomb-row:nth-child(3) {
+        margin-top: -18px;
+    }
+
+    /* Input Harfleri */
+    .input-char {
+        transition: all 0.15s ease;
+    }
+    .input-char:hover {
+        transform: scale(1.15) rotate(-3deg);
+    }
+    .input-char.bonus {
+        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important;
+        border-color: #B45309 !important;
+    }
+</style>
+</head>
+<body class="bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 min-h-screen flex items-center justify-center font-display overflow-hidden fixed w-full h-full">
+
+<div class="w-full max-w-md h-full bg-white/80 backdrop-blur-xl sm:rounded-[32px] sm:shadow-2xl overflow-hidden relative flex flex-col border border-amber-100">
+    
+    <!-- Header -->
+    <header class="pt-4 pb-2 px-5 flex justify-between items-center bg-white/90 backdrop-blur z-10 border-b border-amber-100">
+        <div class="flex flex-col">
+            <h1 class="text-xl font-black text-gray-800 leading-none tracking-tight">
+                <span class="text-honey">PETEK</span>KELİME
+            </h1>
+            <span class="text-[10px] text-amber-600 font-semibold">V3 - Honeycomb Tasarım</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <!-- Skor -->
+            <div class="bg-amber-100 px-3 py-1.5 rounded-xl flex items-center space-x-1 border border-amber-200">
+                <span class="material-symbols-outlined text-amber-600 text-lg">star</span>
+                <span id="score" class="text-lg font-bold text-amber-600 tabular-nums">0</span>
+            </div>
+            <!-- Timer -->
+            <div class="bg-purple-100 px-3 py-1.5 rounded-xl flex items-center space-x-1 border border-purple-200">
+                <span class="material-symbols-outlined text-primary text-lg">timer</span>
+                <span id="timer" class="text-lg font-bold text-primary tabular-nums">01:30</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Bonus Info -->
+    <div class="px-5 py-2 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100">
+        <div class="flex items-center justify-center gap-2 text-xs">
+            <span class="inline-flex items-center gap-1 bg-amber-200/50 text-amber-700 px-2 py-0.5 rounded-full font-semibold">
+                <span class="w-2 h-2 bg-amber-500 rounded-full"></span>
+                Merkez harf = 2x puan
+            </span>
+            <span class="inline-flex items-center gap-1 bg-emerald-200/50 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">
+                <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                Joker = Herhangi harf
+            </span>
+        </div>
+    </div>
+
+    <!-- Game Area -->
+    <div class="flex-shrink-0 flex flex-col items-center justify-start pt-4 w-full relative z-20 bg-transparent">
+        
+        <!-- Top Controls -->
+        <div class="w-full px-6 flex justify-between items-center mb-2">
+            <button onclick="shuffleLetters()" class="flex items-center gap-1.5 px-3 py-2 bg-white rounded-xl border border-gray-200 shadow-sm text-gray-500 hover:text-primary hover:border-primary transition-all active:scale-95">
+                <span class="material-symbols-outlined text-xl">shuffle</span>
+                <span class="text-xs font-bold">Karıştır</span>
+            </button>
+            
+            <!-- Joker -->
+            <div id="joker-container" class="flex items-center gap-2">
+                <span class="text-xs text-gray-400 font-semibold">JOKER:</span>
+                <div id="joker-btn" onclick="handleJokerClick()" class="hexagon joker-hex animate-float">
+                    <span class="hexagon-content">
+                        <span class="material-symbols-outlined text-xl">auto_awesome</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Honeycomb Grid -->
+        <div id="honeycomb-container" class="honeycomb my-4">
+            <!-- Row 1: 2 harfler -->
+            <div class="honeycomb-row">
+                <div id="hex-0" class="hexagon hex-letter" onclick="handleLetterClick(0)">
+                    <span class="hexagon-content">A</span>
+                </div>
+                <div id="hex-1" class="hexagon hex-letter" onclick="handleLetterClick(1)">
+                    <span class="hexagon-content">B</span>
+                </div>
+            </div>
+            <!-- Row 2: 3 harfler (ortadaki merkez) -->
+            <div class="honeycomb-row">
+                <div id="hex-2" class="hexagon hex-letter" onclick="handleLetterClick(2)">
+                    <span class="hexagon-content">C</span>
+                </div>
+                <div id="hex-center" class="hexagon hex-center animate-glow" onclick="handleCenterClick()">
+                    <span class="hexagon-content">★</span>
+                </div>
+                <div id="hex-3" class="hexagon hex-letter" onclick="handleLetterClick(3)">
+                    <span class="hexagon-content">D</span>
+                </div>
+            </div>
+            <!-- Row 3: 2 harfler -->
+            <div class="honeycomb-row">
+                <div id="hex-4" class="hexagon hex-letter" onclick="handleLetterClick(4)">
+                    <span class="hexagon-content">E</span>
+                </div>
+                <div id="hex-5" class="hexagon hex-letter" onclick="handleLetterClick(5)">
+                    <span class="hexagon-content">F</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="w-full px-4 mb-3">
+            <div id="input-wrapper" class="relative w-full min-h-[56px] bg-white rounded-2xl border-2 border-amber-200 flex items-center justify-center overflow-hidden py-2 px-3 shadow-inner">
+                <div id="input-container" class="flex items-center justify-center gap-1.5 flex-wrap">
+                    <span class="text-sm text-gray-400 w-full text-center italic font-medium">Petek harflerini seç...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex gap-3 w-full px-6 mb-4">
+            <button onclick="clearGameInput()" class="flex-[1] py-3 rounded-2xl font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all text-sm flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-lg">delete</span>
+            </button>
+            <button onclick="removeLastChar()" class="flex-[1] py-3 rounded-2xl font-bold text-orange-500 bg-orange-50 hover:bg-orange-100 active:scale-95 transition-all text-sm flex items-center justify-center gap-1 border border-orange-200">
+                <span class="material-symbols-outlined text-lg">backspace</span>
+            </button>
+            <button onclick="submitWord()" class="flex-[2] py-3 rounded-2xl font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 shadow-lg shadow-orange-500/30 hover:from-amber-600 hover:to-orange-600 active:scale-95 flex items-center justify-center gap-2 transition-all">
+                <span>GÖNDER</span>
+                <span class="material-symbols-outlined">send</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Found Words -->
+    <div class="flex-1 w-full bg-white/50 backdrop-blur border-t border-amber-100 overflow-hidden flex flex-col">
+        <div class="px-6 py-3 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur z-10">
+            <h2 class="text-xs font-bold text-amber-600 uppercase tracking-widest flex items-center gap-1">
+                <span class="material-symbols-outlined text-sm">emoji_events</span>
+                Bulunan Kelimeler
+            </h2>
+            <span id="word-count-badge" class="bg-amber-100 text-amber-700 text-xs font-bold px-2.5 py-0.5 rounded-full border border-amber-200">0</span>
+        </div>
+        <div id="found-words-list" class="flex-1 overflow-y-auto px-6 content-start flex flex-wrap gap-2 pb-20 scrollbar-hide">
+            <div class="w-full text-center mt-6 opacity-50">
+                <span class="material-symbols-outlined text-5xl text-amber-300">hive</span>
+                <p class="text-xs text-amber-400 mt-2 font-medium">Henüz kelime bulunamadı</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Joker Modal -->
+    <div id="joker-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-[320px] overflow-hidden flex flex-col border border-emerald-100">
+            <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-emerald-50 to-teal-50">
+                <div>
+                    <h3 class="text-lg font-extrabold text-gray-800 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-emerald-500">auto_awesome</span>
+                        Joker Harf
+                    </h3>
+                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Hangi harf olsun?</p>
+                </div>
+                <button onclick="closeJokerModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
+                    <span class="material-symbols-outlined text-sm">close</span>
+                </button>
+            </div>
+            <div class="p-3 bg-white">
+                <div id="alphabet-grid" class="grid grid-cols-6 gap-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // === CONFIG ===
+    const GAME_DURATION = 90; 
+    const OUTER_LETTER_COUNT = 6; // Dıştaki harfler
+    const VOWELS = "AEIİOÖUÜ";
+    const CONSONANTS = "BCÇDFGĞHJKLMNPRSŞTVYZ";
+    const FULL_ALPHABET = "ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ";
+    
+    // === STATE ===
+    let timerInterval;
+    let timeRemaining = GAME_DURATION;
+    let totalScore = 0;
+    let outerLetters = []; // 6 dış harf
+    let centerLetter = { char: '', selected: false }; // Merkez harf
+    let jokerState = { used: false, char: null };
+    let currentInputSequence = []; 
+    let foundWords = [];
+
+    // === DOM ===
+    const timerEl = document.getElementById('timer');
+    const scoreEl = document.getElementById('score');
+    const inputContainerEl = document.getElementById('input-container');
+    const inputWrapperEl = document.getElementById('input-wrapper');
+    const foundListEl = document.getElementById('found-words-list');
+    const countBadgeEl = document.getElementById('word-count-badge');
+    const modalEl = document.getElementById('joker-modal');
+    const jokerBtnEl = document.getElementById('joker-btn');
+
+    // === INIT ===
+    function initGame() {
+        populateJokerModal();
+        startRound();
+    }
+
+    function startRound() {
+        timeRemaining = GAME_DURATION;
+        totalScore = 0;
+        currentInputSequence = [];
+        foundWords = [];
+        jokerState = { used: false, char: null };
+        
+        generateLetters();
+        renderHoneycomb();
+        renderJoker();
+        renderInput();
+        renderFoundWords();
+        updateTimerDisplay();
+        updateScoreDisplay();
+        
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeRemaining--;
+            updateTimerDisplay();
+            if (timeRemaining <= 0) endRound();
+        }, 1000);
+    }
+
+    function endRound() {
+        clearInterval(timerInterval);
+        alert(`🎉 Oyun Bitti!\n\nToplam Puan: ${totalScore}\nBulunan Kelime: ${foundWords.length}`);
+        startRound();
+    }
+
+    function generateLetters() {
+        outerLetters = [];
+        
+        // Merkez harf (sesli olsun ki kelime kurulabilsin)
+        centerLetter = {
+            char: VOWELS[Math.floor(Math.random() * VOWELS.length)],
+            selected: false
+        };
+        
+        // 2 sesli, 4 sessiz dış harf
+        for (let i = 0; i < OUTER_LETTER_COUNT; i++) {
+            let char;
+            if (i < 2) {
+                do {
+                    char = VOWELS[Math.floor(Math.random() * VOWELS.length)];
+                } while (char === centerLetter.char || outerLetters.some(l => l.char === char));
+            } else {
+                do {
+                    char = CONSONANTS[Math.floor(Math.random() * CONSONANTS.length)];
+                } while (outerLetters.some(l => l.char === char));
+            }
+            outerLetters.push({ char: char, selected: false });
+        }
+        
+        // Karıştır
+        outerLetters.sort(() => Math.random() - 0.5);
+    }
+
+    function renderHoneycomb() {
+        // Dış harfler
+        for (let i = 0; i < OUTER_LETTER_COUNT; i++) {
+            const hexEl = document.getElementById(`hex-${i}`);
+            const letter = outerLetters[i];
+            
+            hexEl.querySelector('.hexagon-content').textContent = letter.char;
+            hexEl.classList.toggle('selected', letter.selected);
+        }
+        
+        // Merkez harf
+        const centerEl = document.getElementById('hex-center');
+        centerEl.querySelector('.hexagon-content').textContent = centerLetter.char;
+        centerEl.classList.toggle('selected', centerLetter.selected);
+        
+        // Glow animasyonu sadece seçili değilse
+        if (centerLetter.selected) {
+            centerEl.classList.remove('animate-glow');
+        } else {
+            centerEl.classList.add('animate-glow');
+        }
+    }
+
+    function renderJoker() {
+        const content = jokerBtnEl.querySelector('.hexagon-content');
+        
+        if (jokerState.used) {
+            jokerBtnEl.classList.add('selected');
+            content.innerHTML = `<span class="text-lg font-bold">${jokerState.char}</span>`;
+        } else {
+            jokerBtnEl.classList.remove('selected');
+            content.innerHTML = '<span class="material-symbols-outlined text-xl">auto_awesome</span>';
+        }
+    }
+
+    function handleLetterClick(index) {
+        const letter = outerLetters[index];
+        
+        if (letter.selected) {
+            removeFromInput(`letter-${index}`);
+        } else {
+            letter.selected = true;
+            currentInputSequence.push({ 
+                id: `letter-${index}`, 
+                type: 'letter', 
+                char: letter.char,
+                isCenter: false
+            });
+        }
+        
+        renderHoneycomb();
+        renderInput();
+    }
+
+    function handleCenterClick() {
+        if (centerLetter.selected) {
+            removeFromInput('center');
+        } else {
+            centerLetter.selected = true;
+            currentInputSequence.push({ 
+                id: 'center', 
+                type: 'center', 
+                char: centerLetter.char,
+                isCenter: true
+            });
+        }
+        
+        renderHoneycomb();
+        renderInput();
+    }
+
+    function handleJokerClick() {
+        if (jokerState.used) {
+            removeFromInput('joker');
+        } else {
+            openJokerModal();
+        }
+    }
+
+    function removeFromInput(itemId) {
+        const index = currentInputSequence.findIndex(s => s.id === itemId);
+        if (index === -1) return;
+        
+        const item = currentInputSequence[index];
+        currentInputSequence.splice(index, 1);
+        
+        // State güncelle
+        if (item.type === 'letter') {
+            const letterIndex = parseInt(item.id.split('-')[1]);
+            outerLetters[letterIndex].selected = false;
+        } else if (item.type === 'center') {
+            centerLetter.selected = false;
+        } else if (item.type === 'joker') {
+            jokerState = { used: false, char: null };
+            renderJoker();
+        }
+        
+        renderHoneycomb();
+        renderInput();
+    }
+
+    function renderInput() {
+        inputContainerEl.innerHTML = '';
+        
+        if (currentInputSequence.length === 0) {
+            inputContainerEl.innerHTML = '<span class="text-sm text-gray-400 w-full text-center italic font-medium">Petek harflerini seç...</span>';
+            return;
+        }
+
+        currentInputSequence.forEach((item, index) => {
+            const box = document.createElement('div');
+            let classes = "input-char w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold shadow-md border-2 cursor-pointer ";
+            
+            if (item.type === 'joker') {
+                classes += "bg-gradient-to-br from-emerald-400 to-teal-500 text-white border-emerald-300";
+            } else if (item.isCenter) {
+                classes += "bonus text-white border-amber-400";
+            } else {
+                classes += "bg-gradient-to-br from-primary to-purple-600 text-white border-purple-400";
+            }
+            
+            box.className = classes;
+            box.innerText = item.char;
+            box.style.animationDelay = `${index * 0.05}s`;
+            box.classList.add('animate-pop');
+            
+            box.onclick = () => removeFromInput(item.id);
+            inputContainerEl.appendChild(box);
+        });
+    }
+
+    function removeLastChar() {
+        if (currentInputSequence.length === 0) return;
+        const lastItem = currentInputSequence[currentInputSequence.length - 1];
+        removeFromInput(lastItem.id);
+    }
+
+    function clearGameInput() {
+        // Reset all
+        outerLetters.forEach(l => l.selected = false);
+        centerLetter.selected = false;
+        jokerState = { used: false, char: null };
+        currentInputSequence = [];
+        
+        renderHoneycomb();
+        renderJoker();
+        renderInput();
+    }
+
+    function submitWord() {
+        if (currentInputSequence.length < 2) {
+            shakeInput();
+            return;
+        }
+        
+        const word = currentInputSequence.map(i => i.char).join('');
+        
+        if (foundWords.some(fw => fw.word === word)) {
+            shakeInput();
+            clearGameInput();
+            return;
+        }
+
+        // Puan hesapla
+        const hasCenter = currentInputSequence.some(i => i.isCenter);
+        const baseScore = word.length * 10;
+        const bonus = hasCenter ? baseScore : 0; // Merkez harf varsa 2x
+        const wordScore = baseScore + bonus;
+        
+        totalScore += wordScore;
+        foundWords.push({ word, score: wordScore, hasBonus: hasCenter });
+        
+        clearGameInput(); 
+        renderFoundWords();
+        updateScoreDisplay();
+    }
+
+    function shakeInput() {
+        inputWrapperEl.classList.add('animate-shake');
+        setTimeout(() => inputWrapperEl.classList.remove('animate-shake'), 300);
+    }
+
+    function renderFoundWords() {
+        countBadgeEl.innerText = foundWords.length;
+        foundListEl.innerHTML = '';
+        
+        if (foundWords.length === 0) {
+            foundListEl.innerHTML = `
+                <div class="w-full text-center mt-6 opacity-50">
+                    <span class="material-symbols-outlined text-5xl text-amber-300">hive</span>
+                    <p class="text-xs text-amber-400 mt-2 font-medium">Henüz kelime bulunamadı</p>
+                </div>`;
+            return;
+        }
+        
+        foundWords.slice().reverse().forEach((item, i) => {
+            const div = document.createElement('div');
+            let classes = "px-3 py-2 rounded-xl text-sm font-bold shadow-sm animate-pop uppercase tracking-wide flex items-center gap-2 ";
+            
+            if (item.hasBonus) {
+                classes += "bg-gradient-to-r from-amber-100 to-orange-100 text-amber-700 border border-amber-300";
+            } else {
+                classes += "bg-white text-gray-700 border border-gray-200";
+            }
+            
+            div.className = classes;
+            div.innerHTML = `
+                <span>${item.word}</span>
+                <span class="text-xs px-1.5 py-0.5 rounded-md ${item.hasBonus ? 'bg-amber-200 text-amber-800' : 'bg-gray-100 text-gray-500'}">+${item.score}</span>
+                ${item.hasBonus ? '<span class="text-xs">⭐</span>' : ''}
+            `;
+            div.style.animationDelay = `${i * 0.03}s`;
+            foundListEl.appendChild(div);
+        });
+    }
+
+    function updateTimerDisplay() {
+        const m = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
+        const s = (timeRemaining % 60).toString().padStart(2, '0');
+        timerEl.innerText = `${m}:${s}`;
+        
+        if (timeRemaining <= 10) {
+            timerEl.classList.add('text-red-500');
+            timerEl.classList.remove('text-primary');
+        } else {
+            timerEl.classList.remove('text-red-500');
+            timerEl.classList.add('text-primary');
+        }
+    }
+
+    function updateScoreDisplay() {
+        scoreEl.innerText = totalScore;
+    }
+
+    function shuffleLetters() {
+        if (currentInputSequence.length > 0) return; // Input doluyken karıştırma
+        outerLetters.sort(() => Math.random() - 0.5);
+        renderHoneycomb();
+    }
+
+    // === MODAL ===
+    function populateJokerModal() {
+        const grid = document.getElementById('alphabet-grid');
+        grid.innerHTML = '';
+        for (let char of FULL_ALPHABET) {
+            const btn = document.createElement('button');
+            btn.className = 'aspect-square bg-gray-50 rounded-xl font-bold text-gray-700 hover:bg-emerald-500 hover:text-white transition-all text-base border border-gray-200 shadow-sm active:scale-90';
+            btn.innerText = char;
+            btn.onclick = () => selectJokerChar(char);
+            grid.appendChild(btn);
+        }
+    }
+
+    function openJokerModal() { 
+        modalEl.classList.remove('hidden'); 
+    }
+
+    function closeJokerModal() { 
+        modalEl.classList.add('hidden'); 
+    }
+
+    function selectJokerChar(char) {
+        jokerState = { used: true, char: char };
+        currentInputSequence.push({ 
+            id: 'joker', 
+            type: 'joker', 
+            char: char,
+            isCenter: false
+        });
+        
+        renderJoker();
+        renderInput();
+        closeJokerModal();
+    }
+
+    // === START ===
+    window.onload = initGame;
+</script>
+</body>
+</html>
