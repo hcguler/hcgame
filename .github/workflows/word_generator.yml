@@ -34,18 +34,16 @@ jobs:
         python -m pip install --upgrade pip
         pip install jpype1 requests
 
-    - name: Zemberek JAR İndir
+    - name: Zemberek JAR İndir (v0.16.0 - Stabil Full Sürüm)
       run: |
         mkdir -p libs
         echo "İndirme başlıyor..."
-        # --fail: Hata olursa (404 vs) işlemi durdurur
-        # -L: Yönlendirmeleri takip eder
-        curl -L --fail -o libs/zemberek-full.jar https://github.com/ahmetaa/zemberek-nlp/releases/download/v0.17.1/zemberek-full.jar
+        # LİNK GÜNCELLENDİ: v0.17.1 yerine v0.16.0 kullanıyoruz.
+        curl -L --fail -o libs/zemberek-full.jar https://github.com/ahmetaa/zemberek-nlp/releases/download/v0.16.0/zemberek-full.jar
 
     - name: JAR Dosyasını Kontrol Et (Debug)
       run: |
         ls -lh libs/
-        # Dosya var mı ve boyutu mantıklı mı diye terminale yazdırır
 
     - name: Kelime Listelerini Oluştur
       run: python generate_words.py
