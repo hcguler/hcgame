@@ -4,15 +4,16 @@ import jpype
 import requests
 import sys
 
-# Ayarlar
+# --- AYARLAR ---
 DATA_DIR = "data"
 MIN_LEN = 3
 MAX_LEN = 9
-# Zemberek JAR yolu (Repodaki dosya)
+# Zemberek JAR yolu (Reponuzdaki libs klasöründe olmalı)
 ZEMBEREK_JAR = "libs/zemberek-full.jar" 
 
-# YENİ VE SAĞLAM URL:
-RAW_WORDLIST_URL = "https://raw.githubusercontent.com/ncarkaci/turkish_word_set/master/word_set.txt"
+# KELİME KAYNAĞI (Mert Emin'in listesinin RAW hali)
+RAW_WORDLIST_URL = "https://raw.githubusercontent.com/mertemin/turkish-word-list/master/words.txt"
+# ----------------
 
 def download_file(url):
     print(f"Ham veri indiriliyor: {url}")
@@ -44,6 +45,7 @@ def main():
     
     print("JVM başlatılıyor...")
     try:
+        # JVM daha önce başlatılmadıysa başlat
         if not jpype.isJVMStarted():
             jpype.startJVM(
                 jpype.getDefaultJVMPath(),
@@ -58,58 +60,73 @@ def main():
     try:
         TurkishMorphology = jpype.JClass("zemberek.morphology.TurkishMorphology")
         morphology = TurkishMorphology.createWithDefaults()
-        print("Zemberek motoru hazır.")
+        print("Zemberek motoru başarıyla yüklendi.")
     except Exception as e:
         print(f"Zemberek sınıfı yüklenemedi: {e}")
         sys.exit(1)
 
-    # 4. Kelimeleri İşle
+    # 4. Kelimeleri İndir ve İşle
     raw_words = download_file(RAW_WORDLIST_URL)
     word_buckets = {i: set() for i in range(MIN_LEN, MAX_LEN + 1)}
     
-    print(f"Toplam {len(raw_words)} ham kelime işleniyor... (Bu işlem biraz sürebilir)")
+    print(f"Kaynaktan {len(raw_words)} kelime çekildi. Analiz başlıyor...")
     
     count = 0
     valid_count = 0
     
     for word in raw_words:
+        # Temizlik
         word = word.strip().lower()
         length = len(word)
 
+        # Uzunluk Filtresi
         if not (MIN_LEN <= length <= MAX_LEN):
             continue
         
-        # Boşluk ve yasaklı karakter filtresi (Oyun için temiz veri)
+        # Karakter Filtresi (Boşluk, sayı veya özel karakter varsa atla)
         if any(char in word for char in " .'0123456789-_/"):
             continue
 
         try:
+            # Zemberek ile Doğrulama (En önemli kısım)
             results = morphology.analyze(word)
-            # Analiz sonucu varsa ve kelime 'Bilinmeyen' değilse
+            
+            # Analiz sonucu dönüyorsa ve kelime "Bilinmeyen" değilse
             if results and results.getAnalysisResults():
                 item = results.getAnalysisResults()[0].getItem()
+                
+                # Zemberek kelimeyi tanıdı mı?
                 if not item.isUnknown():
                     word_buckets[length].add(word)
                     valid_count += 1
         except:
+            # Çok bozuk verilerde hata verirse atla
             continue
         
         count += 1
         if count % 5000 == 0:
-            print(f"{count} kelime tarandı... (Bulunan geçerli kelime: {valid_count})")
+            print(f"{count} kelime tarandı... (Geçerli bulunan: {valid_count})")
 
-    # 5. Kaydet
+    # 5. Dosyaları Kaydet
+    print("-" * 30)
     print("Dosyalar kaydediliyor...")
+    
+    total_saved = 0
     for length, words in word_buckets.items():
         filename = os.path.join(DATA_DIR, f"words{length}.json")
+        # Alfabetik sırala
         sorted_list = sorted(list(words), key=lambda x: (len(x), x))
         
         with open(filename, "w", encoding="utf-8") as f:
             json.dump(sorted_list, f, ensure_ascii=False, indent=2)
             
-        print(f"-> {filename} : {len(sorted_list)} kelime")
+        print(f"-> {filename} oluşturuldu: {len(sorted_list)} kelime")
+        total_saved += len(sorted_list)
         
-    print("Tüm işlemler başarıyla tamamlandı.")
+    print("-" * 30)
+    print(f"TOPLAM {total_saved} adet temiz Türkçe kelime veritabanına eklendi.")
+    
+    # JVM Kapat
     if jpype.isJVMStarted():
         jpype.shutdownJVM()
 
