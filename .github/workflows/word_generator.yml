@@ -1,20 +1,21 @@
 name: Generate Turkish Word Lists
 
 on:
-  workflow_dispatch: # Manuel tetikleme için
+  workflow_dispatch:
   push:
     paths:
-      - 'generate_words.py' # Sadece script değişirse çalışsın
+      - 'generate_words.py'
+      - '.github/workflows/word_generator.yml'
 
 permissions:
-  contents: write # Repoya dosya yazabilmesi için gerekli izin
+  contents: write
 
 jobs:
   build-and-generate:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Repo'yu Çek (Checkout)
+    - name: Repo'yu Çek
       uses: actions/checkout@v3
 
     - name: Python Kurulumu
@@ -22,7 +23,7 @@ jobs:
       with:
         python-version: '3.9'
 
-    - name: Java Kurulumu (Zemberek için)
+    - name: Java Kurulumu
       uses: actions/setup-java@v3
       with:
         distribution: 'temurin'
@@ -36,15 +37,21 @@ jobs:
     - name: Zemberek JAR İndir
       run: |
         mkdir -p libs
-        # Zemberek 0.17.1 (Son stabil sürüm) indiriliyor
-        curl -L -o libs/zemberek-full.jar https://github.com/ahmetaa/zemberek-nlp/releases/download/v0.17.1/zemberek-full.jar
+        echo "İndirme başlıyor..."
+        # --fail: Hata olursa (404 vs) işlemi durdurur
+        # -L: Yönlendirmeleri takip eder
+        curl -L --fail -o libs/zemberek-full.jar https://github.com/ahmetaa/zemberek-nlp/releases/download/v0.17.1/zemberek-full.jar
 
-    - name: Kelime Listelerini Oluştur (Script Çalıştır)
+    - name: JAR Dosyasını Kontrol Et (Debug)
+      run: |
+        ls -lh libs/
+        # Dosya var mı ve boyutu mantıklı mı diye terminale yazdırır
+
+    - name: Kelime Listelerini Oluştur
       run: python generate_words.py
 
-    - name: Değişiklikleri Commit'le ve Push'la
+    - name: Değişiklikleri Kaydet
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
         commit_message: "Auto-generated word lists via GitHub Actions"
         file_pattern: 'data/*.json'
-        branch: ${{ github.ref }}
