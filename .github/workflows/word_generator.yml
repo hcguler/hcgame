@@ -6,6 +6,7 @@ on:
     paths:
       - 'generate_words.py'
       - '.github/workflows/word_generator.yml'
+      - 'libs/**' # Libs klasörü değişirse de çalışsın
 
 permissions:
   contents: write
@@ -34,17 +35,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install jpype1 requests
 
-    - name: Zemberek JAR İndir (v0.11.1 - Garantili Link)
-      run: |
-        mkdir -p libs
-        echo "İndirme başlıyor..."
-        # LİNK GÜNCELLENDİ: v0.11.1 sürümü kesinlikle çalışıyor.
-        curl -L --fail -o libs/zemberek-full.jar https://github.com/ahmetaa/zemberek-nlp/releases/download/v0.11.1/zemberek-full.jar
-
-    - name: JAR Dosyasını Kontrol Et (Debug)
-      run: |
-        ls -lh libs/
-        # Boyutun 0 olmadığından emin olalım
+    # İNDİRME ADIMI KALDIRILDI (Dosya artık repoda)
 
     - name: Kelime Listelerini Oluştur
       run: python generate_words.py
@@ -52,5 +43,5 @@ jobs:
     - name: Değişiklikleri Kaydet
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
-        commit_message: "Auto-generated word lists via GitHub Actions"
+        commit_message: "Auto-generated word lists"
         file_pattern: 'data/*.json'
