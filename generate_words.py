@@ -20,12 +20,9 @@ def download_file(url):
     try:
         response = requests.get(url, timeout=30)
         if response.status_code == 200:
-            # ÖNEMLİ: Türkçe karakter sorunu için encoding'i zorluyoruz
             response.encoding = 'utf-8'
             lines = response.text.splitlines()
             print(f"DEBUG: İndirme Başarılı. Toplam Satır: {len(lines)}")
-            if len(lines) > 0:
-                print(f"DEBUG: İlk 3 kelime örneği: {lines[:3]}")
             return lines
         else:
             print(f"HATA: Sunucu {response.status_code} kodu döndü.")
@@ -46,7 +43,6 @@ def main():
         sys.exit(1)
     
     print(f"DEBUG: JAR Yolu: {jar_path}")
-    print(f"DEBUG: JAR Boyutu: {os.path.getsize(jar_path) / (1024*1024):.2f} MB")
 
     print("JVM başlatılıyor...")
     try:
@@ -69,82 +65,59 @@ def main():
         print(f"Zemberek Sınıf Hatası: {e}")
         sys.exit(1)
 
-    # --- TEST ADIMI: MOTOR ÇALIŞIYOR MU? ---
-    print("-" * 20)
-    print("DEBUG: Motor Testi Yapılıyor ('elma')...")
-    test_results = morphology.analyze("elma")
-    if test_results and test_results.getAnalysisResults():
-        print("DEBUG: Motor 'elma'yı tanıdı! Sonuç:", test_results.getAnalysisResults()[0])
-    else:
-        print("HATA: Motor 'elma' kelimesini bile tanıyamadı! JAR dosyası bozuk olabilir.")
-    print("-" * 20)
-    # ---------------------------------------
-
     # 4. Kelimeleri İndir ve İşle
     raw_words = download_file(RAW_WORDLIST_URL)
     word_buckets = {i: set() for i in range(MIN_LEN, MAX_LEN + 1)}
     
     count = 0
     valid_count = 0
-    rejected_unknown = 0
-    rejected_chars = 0
-    rejected_len = 0
     
     print("Analiz Başlıyor...")
 
     for word in raw_words:
-        original_word = word
         word = word.strip().lower()
         length = len(word)
 
         if not (MIN_LEN <= length <= MAX_LEN):
-            rejected_len += 1
             continue
         
         if any(char in word for char in " .'0123456789-_/"):
-            rejected_chars += 1
             continue
 
         try:
             results = morphology.analyze(word)
             
-            # Analiz sonucu var mı?
             if results and results.getAnalysisResults():
-                item = results.getAnalysisResults()[0].getItem()
+                # DÜZELTME BURADA: .getItem() yerine .getDictionaryItem() kullanıyoruz
+                best_analysis = results.getAnalysisResults()[0]
+                
+                # Zemberek 0.17.1 uyumluluğu
+                item = best_analysis.getDictionaryItem()
                 
                 if not item.isUnknown():
                     word_buckets[length].add(word)
                     valid_count += 1
-                else:
-                    # Bilinmeyen kelime olarak işaretlendi
-                    rejected_unknown += 1
-                    # Debug için ilk 5 bilinmeyeni yazdıralım
-                    if rejected_unknown < 5:
-                        print(f"DEBUG: Bilinmeyen Kelime -> {word}")
-            else:
-                rejected_unknown += 1
-                
+            
+        except AttributeError:
+            # Eğer getDictionaryItem da çalışmazsa metodları görelim (sadece ilk hatada)
+            if count == 0:
+                print(f"HATA: Metod bulunamadı. Mevcut metodlar: {dir(results.getAnalysisResults()[0])}")
+            continue
         except Exception as e:
-            print(f"Analiz Hatası ({word}): {e}")
             continue
         
         count += 1
         if count % 10000 == 0:
-            print(f"İşlenen: {count} | Geçerli: {valid_count} | Bilinmeyen: {rejected_unknown}")
+            print(f"İşlenen: {count} | Geçerli: {valid_count}")
 
     # 5. İstatistik ve Kayıt
     print("\n" + "="*30)
     print("SONUÇ RAPORU:")
     print(f"Toplam Taranan: {len(raw_words)}")
-    print(f"Uzunluk Uymayan: {rejected_len}")
-    print(f"Yasaklı Karakter: {rejected_chars}")
-    print(f"Zemberek 'Bilinmeyen' Dedi: {rejected_unknown}")
-    print(f"KABUL EDİLEN (Dosyaya Yazılacak): {valid_count}")
+    print(f"KABUL EDİLEN: {valid_count}")
     print("="*30 + "\n")
 
-    if valid_count == 0:
-        print("UYARI: Hiçbir kelime geçerli bulunamadı! Lütfen yukarıdaki 'Bilinmeyen Kelime' örneklerine bakarak sorunu anlayın.")
-    else:
+    if valid_count > 0:
         print("Dosyalar kaydediliyor...")
         for length, words in word_buckets.items():
             filename = os.path.join(DATA_DIR, f"words{length}.json")
