@@ -1,0 +1,50 @@
+name: Generate Turkish Word Lists
+
+on:
+  workflow_dispatch: # Manuel tetikleme için
+  push:
+    paths:
+      - 'generate_words.py' # Sadece script değişirse çalışsın
+
+permissions:
+  contents: write # Repoya dosya yazabilmesi için gerekli izin
+
+jobs:
+  build-and-generate:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Repo'yu Çek (Checkout)
+      uses: actions/checkout@v3
+
+    - name: Python Kurulumu
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Java Kurulumu (Zemberek için)
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+
+    - name: Bağımlılıkları Yükle
+      run: |
+        python -m pip install --upgrade pip
+        pip install jpype1 requests
+
+    - name: Zemberek JAR İndir
+      run: |
+        mkdir -p libs
+        # Zemberek 0.17.1 (Son stabil sürüm) indiriliyor
+        curl -L -o libs/zemberek-full.jar https://github.com/ahmetaa/zemberek-nlp/releases/download/v0.17.1/zemberek-full.jar
+
+    - name: Kelime Listelerini Oluştur (Script Çalıştır)
+      run: python generate_words.py
+
+    - name: Değişiklikleri Commit'le ve Push'la
+      uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: "Auto-generated word lists via GitHub Actions"
+        file_pattern: 'data/*.json'
+        branch: ${{ github.ref }}
