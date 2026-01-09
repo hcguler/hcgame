@@ -1,0 +1,12 @@
+{
+  "name": "Shape Sort - Cognitive Sorting Game",
+  "short_name": "Shape Sort",
+  "description": "A fast-paced cognitive sorting game that tests your reflexes and pattern recognition. Match shapes by color or form in 60 seconds!",
+  "start_url": "./",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#6366f1",
+  "categories": ["games", "entertainment", "puzzle"],
+  "shortcuts": [{ "name": "Play Now", "url": "./?action=play" }]
+}
