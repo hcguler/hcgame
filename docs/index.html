@@ -570,31 +570,40 @@
         }
 
         function resetShapePosition() {
-            const gameRect = getGameAreaRect();
-            const shapeRect = elements.draggableShape.getBoundingClientRect();
-            
-            // Ortaya yerleştir
-            const centerX = gameRect.width / 2;
-            const centerY = gameRect.height / 2;
-            
-            elements.draggableShape.classList.remove('returning', 'dragging');
-            elements.draggableShape.style.left = centerX + 'px';
-            elements.draggableShape.style.top = centerY + 'px';
+    const gameRect = getGameAreaRect();
+    const shapeEl = elements.draggableShape;
+    
+    // Şeklin boyutunu al
+    const shapeWidth = shapeEl.offsetWidth;
+    const shapeHeight = shapeEl.offsetHeight;
+    
+    // Şeklin merkezi oyun alanının ortasında olacak şekilde konumlandır
+    const centerX = (gameRect.width - shapeWidth) / 2;
+    const centerY = (gameRect.height - shapeHeight) / 2;
+    
+    shapeEl.classList.remove('returning', 'dragging');
+    shapeEl.style.left = centerX + 'px';
+    shapeEl.style.top = centerY + 'px';
         }
 
         function returnToCenter() {
-            const gameRect = getGameAreaRect();
-            const centerX = gameRect.width / 2;
-            const centerY = gameRect.height / 2;
-            
-            elements.draggableShape.classList.add('returning');
-            elements.draggableShape.classList.remove('dragging');
-            elements.draggableShape.style.left = centerX + 'px';
-            elements.draggableShape.style.top = centerY + 'px';
-            
-            setTimeout(() => {
-                elements.draggableShape.classList.remove('returning');
-            }, 400);
+    const gameRect = getGameAreaRect();
+    const shapeEl = elements.draggableShape;
+    
+    const shapeWidth = shapeEl.offsetWidth;
+    const shapeHeight = shapeEl.offsetHeight;
+    
+    const centerX = (gameRect.width - shapeWidth) / 2;
+    const centerY = (gameRect.height - shapeHeight) / 2;
+    
+    shapeEl.classList.add('returning');
+    shapeEl.classList.remove('dragging');
+    shapeEl.style.left = centerX + 'px';
+    shapeEl.style.top = centerY + 'px';
+    
+    setTimeout(() => {
+        shapeEl.classList.remove('returning');
+    }, 400);
         }
 
         // =====================
