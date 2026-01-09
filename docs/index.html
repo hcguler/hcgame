@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0, user-scalable=no" name="viewport"/>
+    <title>Color & Shape Sorting Game</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#6366f1",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#0f172a",
+                        "game-red": "#ef4444",
+                        "game-blue": "#3b82f6",
+                        "game-green": "#22c55e",
+                        "game-yellow": "#eab308",
+                    },
+                    fontFamily: {
+                        display: ["Outfit", "sans-serif"],
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 0.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'bounce-in': 'bounceIn 0.5s ease-out',
+                        'shake': 'shake 0.5s ease-in-out',
+                        'glow-pulse': 'glowPulse 2s ease-in-out infinite',
+                        'score-pop': 'scorePop 0.3s ease-out',
+                        'fade-in': 'fadeIn 0.3s ease-out',
+                        'slide-up': 'slideUp 0.5s ease-out',
+                    }
+                },
+            },
+        };
+    </script>
+    <style>
+        @keyframes bounceIn {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-10px); }
+            40% { transform: translateX(10px); }
+            60% { transform: translateX(-10px); }
+            80% { transform: translateX(10px); }
+        }
+        @keyframes glowPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.4); }
+            50% { box-shadow: 0 0 40px rgba(99, 102, 241, 0.8); }
+        }
+        @keyframes scorePop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        @keyframes ripple {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(4); opacity: 0; }
+        }
+        @keyframes correctFlash {
+            0% { opacity: 0; }
+            50% { opacity: 0.5; }
+            100% { opacity: 0; }
+        }
+        @keyframes wrongShake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        @keyframes particleExplosion {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+        
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: particleExplosion 0.8s ease-out forwards;
+        }
+        
+        .quadrant-correct {
+            animation: correctFlash 0.5s ease-out;
+        }
+        
+        .quadrant-wrong {
+            animation: wrongShake 0.5s ease-out;
+        }
+        
+        .shape-container {
+            transition: transform 0.1s ease-out;
+        }
+        
+        .shape-container.dragging {
+            transition: none;
+            z-index: 100;
+        }
+        
+        .shape-container.returning {
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        .combo-text {
+            position: absolute;
+            font-weight: 800;
+            font-size: 1.5rem;
+            pointer-events: none;
+            animation: slideUp 0.5s ease-out forwards;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .streak-indicator {
+            transition: all 0.3s ease;
+        }
+        
+        .mode-badge {
+            transition: all 0.3s ease;
+        }
+        
+        body {
+            transition: background-color 0.3s, color 0.3s;
+            touch-action: none;
+            overscroll-behavior: none;
+        }
+        
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .score-animate {
+            animation: scorePop 0.3s ease-out;
+        }
+        
+        .time-warning {
+            color: #ef4444 !important;
+            animation: pulse-fast 0.5s infinite;
+        }
+        
+        .game-over-overlay {
+            backdrop-filter: blur(10px);
+        }
+        
+        .progress-ring {
+            transition: stroke-dashoffset 0.1s linear;
+        }
+        
+        .floating {
+            animation: float 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display h-screen flex flex-col overflow-hidden select-none">
+    <!-- Header -->
+    <header class="flex-none h-20 px-6 flex justify-between items-center bg-white dark:bg-slate-800 shadow-md z-30 relative">
+        <div class="flex flex-col">
+            <span class="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-400 font-bold">Score</span>
+            <div class="flex items-center gap-2">
+                <span id="scoreDisplay" class="text-2xl font-800 text-slate-800 dark:text-white">0</span>
+                <div id="streakBadge" class="hidden streak-indicator px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-400 to-red-500 text-white text-xs font-bold">
+                    🔥 <span id="streakCount">0</span>x
+                </div>
+            </div>
+        </div>
+        
+        <div class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <button id="modeToggle" class="mode-badge px-4 py-1.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold uppercase tracking-widest border border-slate-200 dark:border-slate-600 hover:scale-105 active:scale-95 transition-transform cursor-pointer">
+                <span id="modeText">Color Mode</span>
+            </button>
+        </div>
+        
+        <div class="flex flex-col items-end">
+            <span class="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-400 font-bold">Time</span>
+            <div class="flex items-center space-x-1">
+                <span class="material-icons-round text-lg text-primary" id="timerIcon">timer</span>
+                <span id="timeDisplay" class="text-2xl font-800 text-primary">01:00</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Area -->
+    <main id="gameArea" class="flex-1 relative w-full h-full">
+        <!-- Quadrants -->
+        <div class="absolute inset-0 grid grid-cols-2 grid-rows-2 w-full h-full">
+            <!-- Red Quadrant (Top-Left) - Square -->
+            <div id="quadrant-red" data-color="red" data-shape="square" class="quadrant relative bg-red-100 dark:bg-red-900/40 border-r border-b border-white/20 dark:border-slate-700/50 flex items-start justify-start p-6 group transition-all duration-300">
+                <div class="absolute inset-0 bg-game-red opacity-10 dark:opacity-20 group-hover:opacity-20 transition-opacity pointer-events-none"></div>
+                <div class="quadrant-flash absolute inset-0 bg-game-red opacity-0 pointer-events-none"></div>
+                <span class="material-icons-round text-6xl text-game-red opacity-40 transform -rotate-12 pointer-events-none">crop_square</span>
+            </div>
+            
+            <!-- Green Quadrant (Top-Right) - Circle -->
+            <div id="quadrant-green" data-color="green" data-shape="circle" class="quadrant relative bg-green-100 dark:bg-green-900/40 border-b border-white/20 dark:border-slate-700/50 flex items-start justify-end p-6 group transition-all duration-300">
+                <div class="absolute inset-0 bg-game-green opacity-10 dark:opacity-20 group-hover:opacity-20 transition-opacity pointer-events-none"></div>
+                <div class="quadrant-flash absolute inset-0 bg-game-green opacity-0 pointer-events-none"></div>
+                <span class="material-icons-round text-6xl text-game-green opacity-40 transform rotate-12 pointer-events-none">circle</span>
+            </div>
+            
+            <!-- Blue Quadrant (Bottom-Left) - Triangle -->
+            <div id="quadrant-blue" data-color="blue" data-shape="triangle" class="quadrant relative bg-blue-100 dark:bg-blue-900/40 border-r border-white/20 dark:border-slate-700/50 flex items-end justify-start p-6 group transition-all duration-300">
+                <div class="absolute inset-0 bg-game-blue opacity-10 dark:opacity-20 group-hover:opacity-20 transition-opacity pointer-events-none"></div>
+                <div class="quadrant-flash absolute inset-0 bg-game-blue opacity-0 pointer-events-none"></div>
+                <span class="material-icons-round text-6xl text-game-blue opacity-40 transform -rotate-12 pointer-events-none">change_history</span>
+            </div>
+            
+            <!-- Yellow Quadrant (Bottom-Right) - Star -->
+            <div id="quadrant-yellow" data-color="yellow" data-shape="star" class="quadrant relative bg-yellow-100 dark:bg-yellow-900/40 flex items-end justify-end p-6 group transition-all duration-300">
+                <div class="absolute inset-0 bg-game-yellow opacity-10 dark:opacity-20 group-hover:opacity-20 transition-opacity pointer-events-none"></div>
+                <div class="quadrant-flash absolute inset-0 bg-game-yellow opacity-0 pointer-events-none"></div>
+                <span class="material-icons-round text-6xl text-game-yellow opacity-40 transform rotate-12 pointer-events-none">star</span>
+            </div>
+        </div>
+        
+        <!-- Grid Lines -->
+        <div class="absolute inset-0 pointer-events-none">
+            <div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-slate-300 dark:bg-slate-700 opacity-50 transform -translate-x-1/2"></div>
+            <div class="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-300 dark:bg-slate-700 opacity-50 transform -translate-y-1/2"></div>
+        </div>
+        
+        <!-- Center Shape Container -->
+        <div id="shapeContainer" class="shape-container absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 cursor-grab active:cursor-grabbing touch-manipulation">
+            <div class="relative group">
+                <div id="shapeGlow" class="absolute inset-0 rounded-full blur-xl opacity-40 animate-pulse"></div>
+                <div id="shapeHolder" class="w-28 h-28 rounded-full bg-white dark:bg-slate-800 shadow-xl flex items-center justify-center border-4 border-slate-100 dark:border-slate-700 relative z-10 transition-all duration-200">
+                    <!-- Shape will be inserted here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Particles Container -->
+        <div id="particlesContainer" class="absolute inset-0 pointer-events-none z-30"></div>
+        
+        <!-- Combo Text Container -->
+        <div id="comboContainer" class="absolute inset-0 pointer-events-none z-25"></div>
+        
+        <!-- Background Pattern -->
+        <div class="absolute inset-0 pointer-events-none opacity-[0.03] dark:opacity-[0.05]" style="background-image: radial-gradient(#6366f1 1px, transparent 1px); background-size: 20px 20px;"></div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="flex-none h-16 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 flex items-center justify-center z-30">
+        <p id="instructionText" class="text-sm text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2">
+            Match the <span id="matchType" class="text-primary font-bold">COLOR</span>
+            <span class="text-slate-300 dark:text-slate-600">|</span>
+            <span class="text-xs">Drag to correct zone</span>
+        </p>
+    </footer>
+
+    <!-- Game Over Overlay -->
+    <div id="gameOverOverlay" class="hidden fixed inset-0 bg-black/60 game-over-overlay z-50 flex items-center justify-center">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-8 mx-4 max-w-sm w-full shadow-2xl animate-bounce-in text-center">
+            <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center">
+                <span class="material-icons-round text-4xl text-white">emoji_events</span>
+            </div>
+            <h2 class="text-3xl font-800 text-slate-800 dark:text-white mb-2">Game Over!</h2>
+            <p class="text-slate-500 dark:text-slate-400 mb-6">Great effort! Here's your score:</p>
+            
+            <div class="bg-slate-100 dark:bg-slate-700 rounded-2xl p-6 mb-6">
+                <div class="text-5xl font-800 text-primary mb-2" id="finalScore">0</div>
+                <div class="text-sm text-slate-500 dark:text-slate-400">Total Points</div>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-4 mb-6 text-center">
+                <div>
+                    <div class="text-2xl font-800 text-game-green" id="correctCount">0</div>
+                    <div class="text-xs text-slate-400">Correct</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-800 text-game-red" id="wrongCount">0</div>
+                    <div class="text-xs text-slate-400">Wrong</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-800 text-game-yellow" id="maxStreak">0</div>
+                    <div class="text-xs text-slate-400">Max Streak</div>
+                </div>
+            </div>
+            
+            <button id="playAgainBtn" class="w-full py-4 bg-gradient-to-r from-primary to-purple-600 text-white font-bold rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-lg">
+                <span class="flex items-center justify-center gap-2">
+                    <span class="material-icons-round">replay</span>
+                    Play Again
+                </span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Start Screen Overlay -->
+    <div id="startOverlay" class="fixed inset-0 bg-black/60 game-over-overlay z-50 flex items-center justify-center">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-8 mx-4 max-w-sm w-full shadow-2xl text-center animate-fade-in">
+            <div class="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-game-yellow to-orange-500 flex items-center justify-center floating">
+                <span class="material-icons-round text-5xl text-white">psychology</span>
+            </div>
+            <h1 class="text-3xl font-800 text-slate-800 dark:text-white mb-2">Color & Shape</h1>
+            <p class="text-slate-500 dark:text-slate-400 mb-6">Sort shapes by color or shape in 60 seconds!</p>
+            
+            <div class="bg-slate-100 dark:bg-slate-700 rounded-xl p-4 mb-6 text-left">
+                <h3 class="font-bold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                    <span class="material-icons-round text-primary">help_outline</span>
+                    How to Play
+                </h3>
+                <ul class="text-sm text-slate-500 dark:text-slate-400 space-y-2">
+                    <li class="flex items-start gap-2">
+                        <span class="text-game-green">•</span>
+                        Drag shapes to matching zones
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-game-blue">•</span>
+                        <strong>Color Mode:</strong> Match by color
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-game-yellow">•</span>
+                        <strong>Shape Mode:</strong> Match by shape
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-game-red">•</span>
+                        Build streaks for bonus points!
+                    </li>
+                </ul>
+            </div>
+            
+            <button id="startGameBtn" class="w-full py-4 bg-gradient-to-r from-game-green to-emerald-600 text-white font-bold rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-lg text-lg">
+                <span class="flex items-center justify-center gap-2">
+                    <span class="material-icons-round">play_arrow</span>
+                    Start Game
+                </span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        const GameState = {
+            score: 0,
+            timeLeft: 60,
+            isPlaying: false,
+            currentMode: 'color', // 'color' or 'shape'
+            currentShape: null,
+            streak: 0,
+            maxStreak: 0,
+            correctCount: 0,
+            wrongCount: 0,
+            isDragging: false,
+            dragOffset: { x: 0, y: 0 },
+            shapePosition: { x: 0, y: 0 },
+            centerPosition: { x: 0, y: 0 },
+            timerInterval: null,
+        };
+
+        // Shape definitions
+        const shapes = ['square', 'circle', 'triangle', 'star'];
+        const colors = ['red', 'green', 'blue', 'yellow'];
+        
+        const colorMap = {
+            red: '#ef4444',
+            green: '#22c55e',
+            blue: '#3b82f6',
+            yellow: '#eab308'
+        };
+
+        const shapeIcons = {
+            square: 'crop_square',
+            circle: 'circle',
+            triangle: 'change_history',
+            star: 'star'
+        };
+
+        // DOM Elements
+        const elements = {
+            scoreDisplay: document.getElementById('scoreDisplay'),
+            timeDisplay: document.getElementById('timeDisplay'),
+            timerIcon: document.getElementById('timerIcon'),
+            modeToggle: document.getElementById('modeToggle'),
+            modeText: document.getElementById('modeText'),
+            matchType: document.getElementById('matchType'),
+            shapeContainer: document.getElementById('shapeContainer'),
+            shapeHolder: document.getElementById('shapeHolder'),
+            shapeGlow: document.getElementById('shapeGlow'),
+            gameArea: document.getElementById('gameArea'),
+            particlesContainer: document.getElementById('particlesContainer'),
+            comboContainer: document.getElementById('comboContainer'),
+            streakBadge: document.getElementById('streakBadge'),
+            streakCount: document.getElementById('streakCount'),
+            gameOverOverlay: document.getElementById('gameOverOverlay'),
+            startOverlay: document.getElementById('startOverlay'),
+            finalScore: document.getElementById('finalScore'),
+            correctCount: document.getElementById('correctCount'),
+            wrongCount: document.getElementById('wrongCount'),
+            maxStreak: document.getElementById('maxStreak'),
+            playAgainBtn: document.getElementById('playAgainBtn'),
+            startGameBtn: document.getElementById('startGameBtn'),
+            quadrants: document.querySelectorAll('.quadrant')
+        };
+
+        // Initialize center position
+        function updateCenterPosition() {
+            const rect = elements.gameArea.getBoundingClientRect();
+            GameState.centerPosition = {
+                x: rect.width / 2,
+                y: rect.height / 2
+            };
+            GameState.shapePosition = { ...GameState.centerPosition };
+        }
+
+        // Generate random shape
+        function generateRandomShape() {
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const shape = shapes[Math.floor(Math.random() * shapes.length)];
+            return { color, shape };
+        }
+
+        // Render shape in holder
+        function renderShape(shapeData) {
+            GameState.currentShape = shapeData;
+            const { color, shape } = shapeData;
+            
+            elements.shapeHolder.innerHTML = `
+                <span class="material-icons-round text-5xl transition-transform" style="color: ${colorMap[color]}">
+                    ${shapeIcons[shape]}
+                </span>
+            `;
+            
+            elements.shapeGlow.style.backgroundColor = colorMap[color];
+            elements.shapeContainer.classList.add('animate-bounce-in');
+            
+            setTimeout(() => {
+                elements.shapeContainer.classList.remove('animate-bounce-in');
+            }, 500);
+        }
+
+        // Create new shape
+        function spawnNewShape() {
+            const newShape = generateRandomShape();
+            renderShape(newShape);
+            returnToCenter();
+        }
+
+        // Return shape to center
+        function returnToCenter() {
+            GameState.shapePosition = { ...GameState.centerPosition };
+            elements.shapeContainer.classList.add('returning');
+            elements.shapeContainer.style.transform = `translate(-50%, -50%)`;
+            elements.shapeContainer.style.left = '50%';
+            elements.shapeContainer.style.top = '50%';
+            
+            setTimeout(() => {
+                elements.shapeContainer.classList.remove('returning');
+            }, 400);
+        }
+
+        // Update score display
+        function updateScore(points) {
+            GameState.score += points;
+            elements.scoreDisplay.textContent = GameState.score.toLocaleString();
+            elements.scoreDisplay.classList.add('score-animate');
+            setTimeout(() => elements.scoreDisplay.classList.remove('score-animate'), 300);
+        }
+
+        // Update streak
+        function updateStreak(correct) {
+            if (correct) {
+                GameState.streak++;
+                if (GameState.streak > GameState.maxStreak) {
+                    GameState.maxStreak = GameState.streak;
+                }
+                
+                if (GameState.streak >= 3) {
+                    elements.streakBadge.classList.remove('hidden');
+                    elements.streakCount.textContent = GameState.streak;
+                }
+            } else {
+                GameState.streak = 0;
+                elements.streakBadge.classList.add('hidden');
+            }
+        }
+
+        // Create particles
+        function createParticles(x, y, color) {
+            const particleCount = 12;
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.backgroundColor = color;
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                
+                const angle = (i / particleCount) * Math.PI * 2;
+                const distance = 50 + Math.random() * 50;
+                particle.style.setProperty('--tx', Math.cos(angle) * distance + 'px');
+                particle.style.setProperty('--ty', Math.sin(angle) * distance + 'px');
+                
+                elements.particlesContainer.appendChild(particle);
+                setTimeout(() => particle.remove(), 800);
+            }
+        }
+
+        // Show combo text
+        function showComboText(x, y, text, color) {
+            const combo = document.createElement('div');
+            combo.className = 'combo-text';
+            combo.textContent = text;
+            combo.style.left = x + 'px';
+            combo.style.top = y + 'px';
+            combo.style.color = color;
+            
+            elements.comboContainer.appendChild(combo);
+            setTimeout(() => combo.remove(), 500);
+        }
+
+        // Handle correct answer
+        function handleCorrect(quadrant) {
+            GameState.correctCount++;
+            updateStreak(true);
+            
+            const basePoints = 100;
+            const streakBonus = Math.min(GameState.streak - 1, 5) * 25;
+            const totalPoints = basePoints + streakBonus;
+            
+            updateScore(totalPoints);
+            
+            // Visual feedback
+            const rect = quadrant.getBoundingClientRect();
+            const gameRect = elements.gameArea.getBoundingClientRect();
+            const centerX = rect.left - gameRect.left + rect.width / 2;
+            const centerY = rect.top - gameRect.top + rect.height / 2;
+            
+            const color = colorMap[GameState.currentShape.color];
+            createParticles(centerX, centerY, color);
+            
+            if (GameState.streak >= 3) {
+                showComboText(centerX, centerY - 50, `🔥 ${GameState.streak}x COMBO!`, color);
+            } else {
+                showComboText(centerX, centerY - 50, `+${totalPoints}`, color);
+            }
+            
+            // Flash quadrant
+            const flash = quadrant.querySelector('.quadrant-flash');
+            flash.style.opacity = '0.5';
+            setTimeout(() => flash.style.opacity = '0', 200);
+            
+            // Spawn new shape
+            setTimeout(spawnNewShape, 200);
+        }
+
+        // Handle wrong answer
+        function handleWrong(quadrant) {
+            GameState.wrongCount++;
+            updateStreak(false);
+            
+            // Visual feedback
+            quadrant.classList.add('quadrant-wrong');
+            elements.shapeContainer.classList.add('animate-shake');
+            
+            const flash = quadrant.querySelector('.quadrant-flash');
+            flash.style.opacity = '0.5';
+            flash.style.backgroundColor = '#ef4444';
+            
+            setTimeout(() => {
+                flash.style.opacity = '0';
+                setTimeout(() => {
+                    flash.style.backgroundColor = '';
+                }, 200);
+            }, 200);
+            
+            setTimeout(() => {
+                quadrant.classList.remove('quadrant-wrong');
+                elements.shapeContainer.classList.remove('animate-shake');
+            }, 500);
+            
+            // Return to center
+            returnToCenter();
+            
+            // Vibration feedback (if supported)
+            if (navigator.vibrate) {
+                navigator.vibrate([50, 50, 50]);
+            }
+        }
+
+        // Check which quadrant shape is in
+        function getQuadrantAtPosition(x, y) {
+            const rect = elements.gameArea.getBoundingClientRect();
+            const relX = x - rect.left;
+            const relY = y - rect.top;
+            
+            const centerThreshold = 60;
+            const distFromCenter = Math.sqrt(
+                Math.pow(relX - rect.width / 2, 2) + 
+                Math.pow(relY - rect.height / 2, 2)
+            );
+            
+            if (distFromCenter < centerThreshold) return null;
+            
+            const isLeft = relX < rect.width / 2;
+            const isTop = relY < rect.height / 2;
+            
+            if (isLeft && isTop) return document.getElementById('quadrant-red');
+            if (!isLeft && isTop) return document.getElementById('quadrant-green');
+            if (isLeft && !isTop) return document.getElementById('quadrant-blue');
+            return document.getElementById('quadrant-yellow');
+        }
+
+        // Check if drop is correct
+        function checkDrop(quadrant) {
+            if (!quadrant || !GameState.currentShape) return;
+            
+            const targetColor = quadrant.dataset.color;
+            const targetShape = quadrant.dataset.shape;
+            
+            let isCorrect = false;
+            if (GameState.currentMode === 'color') {
+                isCorrect = GameState.currentShape.color === targetColor;
+            } else {
+                isCorrect = GameState.currentShape.shape === targetShape;
+            }
+            
+            if (isCorrect) {
+                handleCorrect(quadrant);
+            } else {
+                handleWrong(quadrant);
+            }
+        }
+
+        // Drag handling
+        function handleDragStart(e) {
+            if (!GameState.isPlaying) return;
+            
+            e.preventDefault();
+            GameState.isDragging = true;
+            elements.shapeContainer.classList.add('dragging');
+            
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            const rect = elements.shapeContainer.getBoundingClientRect();
+            GameState.dragOffset = {
+                x: clientX - (rect.left + rect.width / 2),
+                y: clientY - (rect.top + rect.height / 2)
+            };
+        }
+
+        function handleDragMove(e) {
+            if (!GameState.isDragging) return;
+            
+            e.preventDefault();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            const gameRect = elements.gameArea.getBoundingClientRect();
+            const x = clientX - gameRect.left - GameState.dragOffset.x;
+            const y = clientY - gameRect.top - GameState.dragOffset.y;
+            
+            elements.shapeContainer.style.left = x + 'px';
+            elements.shapeContainer.style.top = y + 'px';
+            elements.shapeContainer.style.transform = 'translate(-50%, -50%)';
+            
+            // Highlight potential drop zone
+            const quadrant = getQuadrantAtPosition(clientX, clientY);
+            elements.quadrants.forEach(q => {
+                q.style.transform = q === quadrant ? 'scale(1.02)' : 'scale(1)';
+            });
+        }
+
+        function handleDragEnd(e) {
+            if (!GameState.isDragging) return;
+            
+            GameState.isDragging = false;
+            elements.shapeContainer.classList.remove('dragging');
+            
+            elements.quadrants.forEach(q => {
+                q.style.transform = 'scale(1)';
+            });
+            
+            const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+            const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+            
+            const quadrant = getQuadrantAtPosition(clientX, clientY);
+            
+            if (quadrant) {
+                checkDrop(quadrant);
+            } else {
+                returnToCenter();
+            }
+        }
+
+        // Timer
+        function updateTimer() {
+            GameState.timeLeft--;
+            
+            const minutes = Math.floor(GameState.timeLeft / 60);
+            const seconds = GameState.timeLeft % 60;
+            elements.timeDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            
+            // Warning at 10 seconds
+            if (GameState.timeLeft <= 10) {
+                elements.timeDisplay.classList.add('time-warning');
+                elements.timerIcon.classList.add('time-warning');
+            }
+            
+            if (GameState.timeLeft <= 0) {
+                endGame();
+            }
+        }
+
+        // Mode toggle
+        function toggleMode() {
+            GameState.currentMode = GameState.currentMode === 'color' ? 'shape' : 'color';
+            
+            if (GameState.currentMode === 'color') {
+                elements.modeText.textContent = 'Color Mode';
+                elements.matchType.textContent = 'COLOR';
+                elements.modeToggle.classList.remove('bg-purple-100', 'dark:bg-purple-900/40', 'text-purple-600', 'dark:text-purple-300', 'border-purple-200', 'dark:border-purple-600');
+                elements.modeToggle.classList.add('bg-slate-100', 'dark:bg-slate-700', 'text-slate-600', 'dark:text-slate-300', 'border-slate-200', 'dark:border-slate-600');
+            } else {
+                elements.modeText.textContent = 'Shape Mode';
+                elements.matchType.textContent = 'SHAPE';
+                elements.modeToggle.classList.remove('bg-slate-100', 'dark:bg-slate-700', 'text-slate-600', 'dark:text-slate-300', 'border-slate-200', 'dark:border-slate-600');
+                elements.modeToggle.classList.add('bg-purple-100', 'dark:bg-purple-900/40', 'text-purple-600', 'dark:text-purple-300', 'border-purple-200', 'dark:border-purple-600');
+            }
+        }
+
+        // Start game
+        function startGame() {
+            GameState.score = 0;
+            GameState.timeLeft = 60;
+            GameState.streak = 0;
+            GameState.maxStreak = 0;
+            GameState.correctCount = 0;
+            GameState.wrongCount = 0;
+            GameState.isPlaying = true;
+            
+            elements.scoreDisplay.textContent = '0';
+            elements.timeDisplay.textContent = '01:00';
+            elements.timeDisplay.classList.remove('time-warning');
+            elements.timerIcon.classList.remove('time-warning');
+            elements.streakBadge.classList.add('hidden');
+            elements.startOverlay.classList.add('hidden');
+            elements.gameOverOverlay.classList.add('hidden');
+            
+            updateCenterPosition();
+            spawnNewShape();
+            
+            GameState.timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        // End game
+        function endGame() {
+            GameState.isPlaying = false;
+            clearInterval(GameState.timerInterval);
+            
+            elements.finalScore.textContent = GameState.score.toLocaleString();
+            elements.correctCount.textContent = GameState.correctCount;
+            elements.wrongCount.textContent = GameState.wrongCount;
+            elements.maxStreak.textContent = GameState.maxStreak;
+            
+            elements.gameOverOverlay.classList.remove('hidden');
+        }
+
+        // Event listeners
+        elements.shapeContainer.addEventListener('mousedown', handleDragStart);
+        elements.shapeContainer.addEventListener('touchstart', handleDragStart, { passive: false });
+
+        document.addEventListener('mousemove', handleDragMove);
+        document.addEventListener('touchmove', handleDragMove, { passive: false });
+
+        document.addEventListener('mouseup', handleDragEnd);
+        document.addEventListener('touchend', handleDragEnd);
+
+        elements.modeToggle.addEventListener('click', () => {
+            if (GameState.isPlaying) toggleMode();
+        });
+
+        elements.startGameBtn.addEventListener('click', startGame);
+        elements.playAgainBtn.addEventListener('click', startGame);
+
+        window.addEventListener('resize', updateCenterPosition);
+
+        // Initialize
+        updateCenterPosition();
+    </script>
+</body>
+</html>
