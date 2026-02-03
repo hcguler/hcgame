@@ -2,232 +2,368 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gül Eğrileri Oluşturucu</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Canlı Desen Oluşturucu</title>
     <style>
+        :root {
+            --bg-color: #0f0f13;
+            --panel-bg: #1a1a23;
+            --text-color: #e0e0e0;
+            --accent-color: #00d2ff;
+            --border-color: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         body {
             margin: 0;
             padding: 0;
-            background-color: #111; /* Koyu arka plan */
-            color: #eee;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
+            overflow: hidden; /* Kaydırmayı engelle, içerik kendi içinde kayacak */
         }
 
-        h1 {
-            margin-top: 20px;
-            font-weight: 300;
-            letter-spacing: 1px;
-        }
-
-        .container {
+        /* MASAÜSTÜ GÖRÜNÜMÜ (Varsayılan: Yan yana) */
+        .app-container {
             display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 20px;
             width: 100%;
-            max-width: 1000px;
+            height: 100%;
         }
 
-        .controls {
-            background: #222;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            min-width: 250px;
-            border: 1px solid #333;
-        }
-
-        .canvas-container {
-            background: #000;
-            border: 1px solid #333;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            padding: 10px;
+        /* Sol/Üst Panel: Canvas (Çizim) */
+        .canvas-section {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background-color: #000;
+            overflow: hidden;
         }
 
         canvas {
-            display: block;
-            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0, 210, 255, 0.1);
         }
 
+        /* Sağ/Alt Panel: Kontroller */
+        .controls-section {
+            flex: 0 0 350px; /* Sabit genişlik */
+            background-color: var(--panel-bg);
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* MOBİL GÖRÜNÜM (Ekran 768px'den küçükse) */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            
+            .app-container {
+                flex-direction: column;
+            }
+
+            .canvas-section {
+                height: 50vh; /* Ekranın tam yarısı */
+                flex: none;
+                border-bottom: 2px solid var(--accent-color);
+            }
+
+            .controls-section {
+                height: 50vh; /* Ekranın diğer yarısı */
+                flex: none;
+                width: 100%;
+                border-left: none;
+                padding: 15px;
+            }
+        }
+
+        /* KONTROL ELEMANLARI STİLİ */
+        h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: var(--accent-color); }
+        
         .control-group {
-            margin-bottom: 15px;
+            background: rgba(255,255,255,0.03);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #333;
         }
 
         label {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 5px;
             font-size: 0.9rem;
+            margin-bottom: 8px;
             color: #ccc;
         }
 
+        .val-disp { color: var(--accent-color); font-weight: bold; }
+
         input[type="range"] {
             width: 100%;
+            height: 6px;
+            background: #444;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--accent-color);
+            border-radius: 50%;
             cursor: pointer;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            background: #2a2a35;
+            color: white;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 1rem;
+            outline: none;
         }
 
         input[type="color"] {
             width: 100%;
             height: 40px;
             border: none;
+            background: transparent;
             cursor: pointer;
-            background: none;
         }
 
-        .value-display {
-            color: #4facfe;
-            font-weight: bold;
-        }
-
-        .formula {
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 1.2rem;
-            font-family: 'Courier New', Courier, monospace;
-            background: #333;
+        button.reset-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
             padding: 10px;
-            border-radius: 8px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-    <h1>Gül Eğrileri (Rose Curves)</h1>
-
-    <div class="container">
-        <div class="controls">
-            <div class="formula">
-                r(θ) = cos(<span id="n-val-disp">1</span>/<span id="d-val-disp">1</span> · θ)
-            </div>
-
-            <div class="control-group">
-                <label>n (Pay): <span id="n-display" class="value-display">1</span></label>
-                <input type="range" id="n" min="1" max="20" value="1" step="1">
-            </div>
-
-            <div class="control-group">
-                <label>d (Payda): <span id="d-display" class="value-display">1</span></label>
-                <input type="range" id="d" min="1" max="20" value="1" step="1">
-            </div>
-
-            <hr style="border-color: #444; margin: 20px 0;">
-
-            <div class="control-group">
-                <label>Çizgi Rengi:</label>
-                <input type="color" id="color" value="#ff3e3e">
-            </div>
-
-            <div class="control-group">
-                <label>Çizgi Kalınlığı: <span id="width-display" class="value-display">2</span></label>
-                <input type="range" id="width" min="0.5" max="10" value="2" step="0.5">
-            </div>
-            
-            <div class="control-group">
-                <label>Ölçek (Zoom):</label>
-                <input type="range" id="scale" min="50" max="280" value="200" step="10">
-            </div>
-        </div>
-
-        <div class="canvas-container">
-            <canvas id="roseCanvas" width="600" height="600"></canvas>
-        </div>
+<div class="app-container">
+    <div class="canvas-section" id="canvasContainer">
+        <canvas id="mainCanvas"></canvas>
     </div>
 
-    <script>
-        const canvas = document.getElementById('roseCanvas');
-        const ctx = canvas.getContext('2d');
+    <div class="controls-section">
+        <h2>Desen Ayarları</h2>
 
-        // Input elementlerini seç
-        const nInput = document.getElementById('n');
-        const dInput = document.getElementById('d');
-        const colorInput = document.getElementById('color');
-        const widthInput = document.getElementById('width');
-        const scaleInput = document.getElementById('scale');
+        <div class="control-group">
+            <label>Desen Modeli</label>
+            <select id="patternSelect">
+                <option value="1">Klasik Gül (Cos)</option>
+                <option value="2">Papatya Stili (Sin)</option>
+                <option value="3">Hibrit Gül (Cos + Sin)</option>
+                <option value="4">Keskin Yapraklar (Küp)</option>
+                <option value="5">Geniş Döngü (Limaçon)</option>
+            </select>
+        </div>
 
-        // Değer göstergelerini seç
-        const nDisplay = document.getElementById('n-display');
-        const dDisplay = document.getElementById('d-display');
-        const nValDisp = document.getElementById('n-val-disp');
-        const dValDisp = document.getElementById('d-val-disp');
-        const widthDisplay = document.getElementById('width-display');
+        <div class="control-group">
+            <label>N Değeri (Yaprak Sayısı): <span id="nDisp" class="val-disp">3</span></label>
+            <input type="range" id="nVal" min="1" max="20" step="1" value="3">
+        </div>
 
-        function draw() {
-            // Değerleri al
-            const n = parseFloat(nInput.value);
-            const d = parseFloat(dInput.value);
-            const color = colorInput.value;
-            const lineWidth = parseFloat(widthInput.value);
-            const scale = parseFloat(scaleInput.value);
-            const k = n / d;
+        <div class="control-group">
+            <label>D Değeri (Sıklık): <span id="dDisp" class="val-disp">5</span></label>
+            <input type="range" id="dVal" min="1" max="20" step="1" value="5">
+        </div>
 
-            // UI metinlerini güncelle
-            nDisplay.textContent = n;
-            dDisplay.textContent = d;
-            nValDisp.textContent = n;
-            dValDisp.textContent = d;
-            widthDisplay.textContent = lineWidth;
+        <div class="control-group">
+            <label>Animasyon Hızı: <span id="speedDisp" class="val-disp">Orta</span></label>
+            <input type="range" id="speedVal" min="1" max="50" step="1" value="10">
+        </div>
 
-            // Canvas'ı temizle
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Çizim ayarları
-            ctx.strokeStyle = color;
-            ctx.lineWidth = lineWidth;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
+        <div class="control-group">
+            <label>Renk</label>
+            <input type="color" id="colorVal" value="#00d2ff">
+        </div>
 
-            // Çizime başla
-            ctx.beginPath();
+        <div class="control-group">
+            <label>Çizgi Kalınlığı: <span id="widthDisp" class="val-disp">2</span></label>
+            <input type="range" id="widthVal" min="0.5" max="10" step="0.5" value="2">
+        </div>
+        
+        <button class="reset-btn" onclick="resetDrawing()">Ekranı Temizle & Yeniden Başlat</button>
+    </div>
+</div>
 
-            // Döngü sınırını belirle
-            // Tam bir kapalı eğri elde etmek için genellikle 2 * PI * d kadar dönmek gerekir.
-            // Daha yüksek hassasiyet için adımı küçültüyoruz.
-            const totalRotation = Math.PI * 2 * d; 
-            
-            // Eğer d çift sayıysa bazen 2*PI*d gerekir, tekse PI*d yetebilir ama
-            // genel formül olarak 2*PI*d her zaman eğriyi kapatır.
-            
-            const step = 0.01; // Çizim hassasiyeti (daha düşük = daha pürüzsüz)
+<script>
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('canvasContainer');
 
-            for (let theta = 0; theta <= totalRotation; theta += step) {
-                // Kutupsal denklem: r = cos(k * theta)
-                const r = Math.cos(k * theta) * scale;
+    // Durum Değişkenleri
+    let theta = 0; // Mevcut açı
+    let animationId;
+    let lastX = null;
+    let lastY = null;
+    
+    // Ayarlar
+    const settings = {
+        n: 3,
+        d: 5,
+        speed: 0.05, // Açı artış hızı
+        color: '#00d2ff',
+        width: 2,
+        scale: 150,
+        pattern: '1'
+    };
 
-                // Kutupsaldan Kartezyene dönüşüm
-                // x = r * cos(theta)
-                // y = r * sin(theta)
-                // + canvas.width/2 ile merkeze taşıyoruz
-                const x = (r * Math.cos(theta)) + (canvas.width / 2);
-                const y = (r * Math.sin(theta)) + (canvas.height / 2);
+    // Eleman Seçimi
+    const ui = {
+        n: document.getElementById('nVal'),
+        d: document.getElementById('dVal'),
+        speed: document.getElementById('speedVal'),
+        color: document.getElementById('colorVal'),
+        width: document.getElementById('widthVal'),
+        pattern: document.getElementById('patternSelect'),
+        displays: {
+            n: document.getElementById('nDisp'),
+            d: document.getElementById('dDisp'),
+            width: document.getElementById('widthDisp'),
+            speed: document.getElementById('speedDisp')
+        }
+    };
 
-                if (theta === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
-                }
-            }
+    // Canvas Boyutlandırma
+    function resizeCanvas() {
+        const rect = container.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+        
+        // Mobil/Masaüstü ayrımına göre ölçeği ayarla
+        settings.scale = Math.min(canvas.width, canvas.height) / 2.5;
+        
+        resetDrawing(); // Boyut değişince sıfırla
+    }
 
-            // Son noktayı ilkiyle birleştir (küsürat hatalarını kapatmak için)
-            ctx.closePath();
-            ctx.stroke();
+    // Matematiksel Formüller
+    function getRadius(k, t, type) {
+        // k = n/d, t = theta
+        switch(type) {
+            case '1': return Math.cos(k * t); // Klasik
+            case '2': return Math.sin(k * t); // Papatya
+            case '3': return Math.cos(k * t) + Math.sin(k * t); // Hibrit
+            case '4': return Math.pow(Math.cos(k * t), 3); // Keskin
+            case '5': return 1 + 0.5 * Math.cos(k * t); // Limaçon tarzı
+            default: return Math.cos(k * t);
+        }
+    }
+
+    // Animasyon Döngüsü
+    function animate() {
+        const k = settings.n / settings.d;
+        
+        // Hıza göre döngü (hızlıysa bir karede birden çok çizgi çiz)
+        // Kullanıcı arayüzündeki 1-50 değerini mantıklı bir döngü sayısına çeviriyoruz
+        const stepsPerFrame = Math.ceil(settings.speedVal); 
+        const stepSize = 0.02; // Açı adımı sabit, çizim kalitesi için
+
+        ctx.strokeStyle = settings.color;
+        ctx.lineWidth = settings.width;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        ctx.beginPath();
+        
+        // Çizim devamlılığı için moveTO
+        if (lastX !== null) {
+            ctx.moveTo(lastX, lastY);
         }
 
-        // Event Listeners - Herhangi bir input değiştiğinde yeniden çiz
-        const inputs = [nInput, dInput, colorInput, widthInput, scaleInput];
-        inputs.forEach(input => {
-            input.addEventListener('input', draw);
-        });
+        for (let i = 0; i < stepsPerFrame; i++) {
+            theta += stepSize;
+            
+            const r = getRadius(k, theta, settings.pattern) * settings.scale;
+            
+            const x = (canvas.width / 2) + (r * Math.cos(theta));
+            const y = (canvas.height / 2) + (r * Math.sin(theta));
+            
+            ctx.lineTo(x, y);
+            
+            lastX = x;
+            lastY = y;
+        }
+        
+        ctx.stroke();
 
-        // Sayfa yüklendiğinde ilk çizimi yap
-        draw();
+        animationId = requestAnimationFrame(animate);
+    }
 
-    </script>
+    // Ayarları Güncelleme ve Event Listenerlar
+    function updateSettings(reset = false) {
+        settings.n = parseFloat(ui.n.value);
+        settings.d = parseFloat(ui.d.value);
+        settings.color = ui.color.value;
+        settings.width = parseFloat(ui.width.value);
+        settings.pattern = ui.pattern.value;
+        
+        // Hız hesaplama (Slider 1-50 arası, bunu loop sayısına çeviriyoruz)
+        settings.speedVal = parseFloat(ui.speed.value);
+
+        // UI Metin Güncellemeleri
+        ui.displays.n.textContent = settings.n;
+        ui.displays.d.textContent = settings.d;
+        ui.displays.width.textContent = settings.width;
+        ui.displays.speed.textContent = settings.speedVal < 15 ? "Yavaş" : (settings.speedVal < 35 ? "Orta" : "Hızlı");
+
+        if (reset) {
+            resetDrawing();
+        }
+    }
+
+    function resetDrawing() {
+        // Ekranı temizle
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Değişkenleri sıfırla
+        theta = 0;
+        lastX = null;
+        lastY = null;
+
+        // Önceki animasyonu durdur ve yenisini başlat
+        cancelAnimationFrame(animationId);
+        animate();
+    }
+
+    // Event Listener Ekleme
+    ui.n.addEventListener('input', () => updateSettings(true)); // Desen değişirse sıfırla
+    ui.d.addEventListener('input', () => updateSettings(true)); // Desen değişirse sıfırla
+    ui.pattern.addEventListener('change', () => updateSettings(true)); // Formül değişirse sıfırla
+    
+    ui.color.addEventListener('input', () => updateSettings(false)); // Renk değişirse devam et
+    ui.width.addEventListener('input', () => updateSettings(false)); // Kalınlık değişirse devam et
+    ui.speed.addEventListener('input', () => updateSettings(false)); // Hız değişirse devam et
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // Başlangıç
+    resizeCanvas();
+    updateSettings();
+
+</script>
+
 </body>
 </html>
+
